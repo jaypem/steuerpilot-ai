@@ -56,10 +56,10 @@
 
 ## Phase 5: Frontend — Sidebars und State
 
-- [ ] **5.1** `SparSidebar` — laufende Ersparnis-Summe, animiert, Positions-Liste, Disclaimer
-- [ ] **5.2** Session-Typen und Mock-Daten in `src/types/session.ts` und `src/lib/mockSessions.ts`
-- [ ] **5.3** `SessionSidebar` — Session-Liste, aktive Session hervorgehoben, "Neue Konversation"-Button
-- [ ] **5.4** Globaler State via React Context (`ChatContext`)
+- [x] **5.1** `SparSidebar` — animierte Ersparnis-Summe (Glow-Effekt bei Änderung), Positions-Liste mit Risiko-Indikator
+- [x] **5.2** Session-Typen und Mock-Daten in `src/types/session.ts` und `src/lib/mockSessions.ts`
+- [x] **5.3** `SessionSidebar` — liest Sessions aus Context, Ersparnis pro Session, relative Datumsformatierung
+- [x] **5.4** `ChatContext` — globaler State (messages, sessions, totalSaving, savingEntries), `ChatProvider` in AppShell
 
 ---
 

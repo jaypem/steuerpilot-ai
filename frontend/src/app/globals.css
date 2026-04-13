@@ -1,0 +1,48 @@
+@import "tailwindcss";
+
+/* ─── Design Tokens ─────────────────────────────────────────────────────── */
+
+@theme inline {
+  /* Fonts */
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  /* Base */
+  --color-background: #ffffff;
+  --color-foreground: #111827;
+  --color-surface: #f8fafc;
+  --color-surface-raised: #ffffff;
+  --color-border: #e5e7eb;
+  --color-muted: #6b7280;
+
+  /* Accent (Quellenangaben, Links) */
+  --color-accent: #3b82f6;
+  --color-accent-hover: #2563eb;
+  --color-accent-subtle: #eff6ff;
+
+  /* Grauzon-Risikostufen */
+  --color-risk-low: #22c55e;
+  --color-risk-low-subtle: #f0fdf4;
+  --color-risk-medium: #eab308;
+  --color-risk-medium-subtle: #fefce8;
+  --color-risk-high: #f97316;
+  --color-risk-high-subtle: #fff7ed;
+
+  /* Spar-Sidebar */
+  --color-saving: #10b981;
+  --color-saving-subtle: #ecfdf5;
+
+  /* Sidebar */
+  --color-sidebar: #1e293b;
+  --color-sidebar-item: #334155;
+  --color-sidebar-item-active: #3b82f6;
+  --color-sidebar-text: #cbd5e1;
+  --color-sidebar-text-active: #ffffff;
+}
+
+/* ─── Base ───────────────────────────────────────────────────────────────── */
+
+body {
+  background: var(--color-surface);
+  color: var(--color-foreground);
+}

@@ -109,11 +109,11 @@
 
 ## Phase 11: Backend — LlamaIndex + Claude Integration
 
-- [ ] **11.1** LlamaIndex und Anthropic-Dependencies ergänzen
-- [ ] **11.2** LLM-Wrapper `app/llm.py` mit Prompt Caching, Singleton via `lru_cache`
-- [ ] **11.3** System-Prompt in `app/prompts.py` (Antwortformat laut PRD, Disclaimer)
-- [ ] **11.4** `SimpleChatEngine` mit Konversations-History aus SQLite, SSE-Streaming
-- [ ] **11.5** Source-Extraktion aus LLM-Output via `[[§X:Gesetz:Abs.Y]]`-Marker
+- [x] **11.1** LlamaIndex und Anthropic-Dependencies ergänzen
+- [x] **11.2** LLM-Wrapper `app/llm.py` mit Prompt Caching, Singleton via `lru_cache`
+- [x] **11.3** System-Prompt in `app/prompts.py` (Antwortformat laut PRD, Disclaimer)
+- [x] **11.4** `SimpleChatEngine` mit Konversations-History aus SQLite, SSE-Streaming
+- [x] **11.5** Source-Extraktion aus LLM-Output via `===STEUERPILOT_META===`-Block
 
 ---
 

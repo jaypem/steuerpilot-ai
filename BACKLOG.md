@@ -82,10 +82,10 @@
 
 ## Phase 8: Backend — SSE-Streaming-Endpunkt
 
-- [ ] **8.1** Pydantic-Schemas: `ChatRequest`, `StreamChunk` in `app/models/chat.py`
-- [ ] **8.2** SSE-Generator mit `StreamingResponse` und Dummy-Text in `app/routers/chat.py`
-- [ ] **8.3** SSE-Event-Format finalisieren (`text`, `source`, `risk_badge`, `saving`, `done`, `error`)
-- [ ] **8.4** Error Handling im Generator
+- [x] **8.1** Pydantic-Schemas: `ChatRequest`, `StreamChunk` in `app/models/chat.py`
+- [x] **8.2** SSE-Generator mit `StreamingResponse` und Dummy-Text in `app/routers/chat.py`
+- [x] **8.3** SSE-Event-Format finalisieren (`text`, `source`, `risk_badge`, `saving`, `done`, `error`)
+- [x] **8.4** Error Handling im Generator
 
 ---
 

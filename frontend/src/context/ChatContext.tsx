@@ -7,6 +7,7 @@ import {
   useMemo,
   useState,
 } from "react";
+
 import type { Message } from "@/types/chat";
 import type { Session } from "@/types/session";
 import { useMockChat } from "@/hooks/useMockChat";
@@ -57,6 +58,8 @@ interface ChatContextValue {
   messages: Message[];
   isLoading: boolean;
   submitMessage: (text: string) => void;
+  errorMessage: string | null;
+  clearError: () => void;
   // Sessions
   sessions: Session[];
   activeSessionId: string;
@@ -84,6 +87,9 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   const [activeSessionId, setActiveSessionId] = useState<string>(
     MOCK_SESSIONS[0].id
   );
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const clearError = useCallback(() => setErrorMessage(null), []);
 
   const { messages, isLoading, submitMessage } = useMockChat({
     initialMessages: INITIAL_MESSAGES,
@@ -139,6 +145,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         messages,
         isLoading,
         submitMessage,
+        errorMessage,
+        clearError,
         sessions,
         activeSessionId,
         selectSession,

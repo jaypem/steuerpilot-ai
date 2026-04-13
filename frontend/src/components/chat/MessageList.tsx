@@ -2,14 +2,23 @@
 
 import { useEffect, useRef } from "react";
 import type { Message } from "@/types/chat";
+import { useChatContext } from "@/context/ChatContext";
 import UserMessage from "./UserMessage";
 import AssistantMessage from "./AssistantMessage";
+
+const SUGGESTIONS = [
+  "Homeoffice absetzen",
+  "Pendlerpauschale berechnen",
+  "Laptop von der Steuer absetzen",
+  "Riester-Rente eintragen",
+];
 
 interface MessageListProps {
   messages: Message[];
 }
 
 export default function MessageList({ messages }: MessageListProps) {
+  const { submitMessage } = useChatContext();
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -35,16 +44,16 @@ export default function MessageList({ messages }: MessageListProps) {
             Stelle eine Frage zu deiner Steuererklärung.
           </p>
         </div>
-        <div className="mt-2 flex flex-wrap justify-center gap-2">
-          {[
-            "Homeoffice absetzen",
-            "Pendlerpauschale berechnen",
-            "Laptop von der Steuer absetzen",
-            "Riester-Rente eintragen",
-          ].map((suggestion) => (
+        <div
+          className="mt-2 flex flex-wrap justify-center gap-2"
+          role="group"
+          aria-label="Beispielfragen"
+        >
+          {SUGGESTIONS.map((suggestion) => (
             <button
               key={suggestion}
-              className="rounded-full border border-border bg-surface-raised px-3 py-1.5 text-xs text-muted transition-colors hover:border-accent hover:text-accent"
+              onClick={() => submitMessage(suggestion)}
+              className="rounded-full border border-border bg-surface-raised px-3 py-1.5 text-xs text-muted transition-colors hover:border-accent hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             >
               {suggestion}
             </button>

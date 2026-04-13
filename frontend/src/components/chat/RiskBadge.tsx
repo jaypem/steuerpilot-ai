@@ -34,8 +34,14 @@ export default function RiskBadge({ level, label, explanation }: RiskBadgeProps)
   const c = config[level];
   const displayLabel = label ?? c.label;
 
+  const tooltipId = `risk-tooltip-${level}`;
+
   return (
-    <div className="group relative inline-block">
+    <div
+      className="group relative inline-block"
+      tabIndex={explanation ? 0 : undefined}
+      aria-describedby={explanation ? tooltipId : undefined}
+    >
       <span
         className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${c.bgClass} ${c.textClass}`}
       >
@@ -45,8 +51,9 @@ export default function RiskBadge({ level, label, explanation }: RiskBadgeProps)
 
       {explanation && (
         <div
+          id={tooltipId}
           role="tooltip"
-          className="pointer-events-none absolute bottom-full left-0 z-10 mb-1.5 hidden w-56 rounded-lg border border-border bg-surface-raised p-2.5 shadow-md group-hover:block"
+          className="pointer-events-none absolute bottom-full left-0 z-10 mb-1.5 hidden w-56 rounded-lg border border-border bg-surface-raised p-2.5 shadow-md group-hover:block group-focus:block"
         >
           <p className="text-xs leading-relaxed text-foreground">{explanation}</p>
         </div>

@@ -5,6 +5,7 @@ import { ChatProvider } from "@/context/ChatContext";
 import Header from "./Header";
 import SessionSidebar from "./SessionSidebar";
 import SparSidebar from "./SparSidebar";
+import ErrorToast from "./ErrorToast";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -62,6 +63,8 @@ export default function AppShell({ children }: AppShellProps) {
           <SparSidebar />
         </div>
       </div>
+
+      <ErrorToast />
     </ChatProvider>
   );
 }

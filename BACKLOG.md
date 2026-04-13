@@ -65,9 +65,9 @@
 
 ## Phase 6: Frontend — Feinschliff
 
-- [ ] **6.1** Welcome-Screen mit Beispielfragen, Loading States, Error-Toast
-- [ ] **6.2** Keyboard-Navigation, ARIA-Labels, Accessibility
-- [ ] **6.3** Markdown-Rendering in `AssistantMessage` via `react-markdown` + `remark-gfm`
+- [x] **6.1** Welcome-Screen mit Beispielfragen, Loading States, Error-Toast
+- [x] **6.2** Keyboard-Navigation, ARIA-Labels, Accessibility
+- [x] **6.3** Markdown-Rendering in `AssistantMessage` via `react-markdown` + `remark-gfm`
 
 ---
 

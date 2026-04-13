@@ -36,12 +36,12 @@
 
 ## Phase 3: Frontend — Chat-Komponenten
 
-- [ ] **3.1** Typ-Definitionen: `Message`, `Source`, `RiskBadge` in `src/types/chat.ts`
-- [ ] **3.2** Nachrichten-Komponenten: `MessageList`, `UserMessage`, `AssistantMessage`
-- [ ] **3.3** `SourceChip` — aufklappbarer Chip mit Paragraf-Text
-- [ ] **3.4** `RiskBadge` — drei Varianten (low/medium/high) mit Tooltip
-- [ ] **3.5** `ChatInput` — Textarea mit Auto-Resize, Enter-Submit, Zeichenzähler
-- [ ] **3.6** `ChatContainer` — bindet alle Komponenten zusammen, Dummy-Nachrichten
+- [x] **3.1** Typ-Definitionen: `Message`, `Source`, `RiskBadge` in `src/types/chat.ts`
+- [x] **3.2** Nachrichten-Komponenten: `MessageList`, `UserMessage`, `AssistantMessage`
+- [x] **3.3** `SourceChip` — aufklappbarer Chip mit Paragraf-Text
+- [x] **3.4** `RiskBadge` — drei Varianten (low/medium/high) mit Tooltip
+- [x] **3.5** `ChatInput` — Textarea mit Auto-Resize, Enter-Submit, Zeichenzähler
+- [x] **3.6** `ChatContainer` — bindet alle Komponenten zusammen, Dummy-Nachrichten
 
 ---
 

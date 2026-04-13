@@ -73,10 +73,10 @@
 
 ## Phase 7: Backend — FastAPI Setup
 
-- [ ] **7.1** Python-Projekt initialisieren (`uv init`, `uv python pin 3.12`, Basis-Dependencies)
-- [ ] **7.2** Projektstruktur anlegen (`app/main.py`, `app/config.py`, `app/routers/`, `app/models/`)
-- [ ] **7.3** Konfiguration via `pydantic-settings` (API Key, CORS Origins, Tax Year)
-- [ ] **7.4** CORS-Middleware und `GET /health` Endpunkt
+- [x] **7.1** Python-Projekt initialisieren (`uv init`, `uv python pin 3.12`, Basis-Dependencies)
+- [x] **7.2** Projektstruktur anlegen (`app/main.py`, `app/config.py`, `app/routers/`, `app/models/`)
+- [x] **7.3** Konfiguration via `pydantic-settings` (API Key, CORS Origins, Tax Year)
+- [x] **7.4** CORS-Middleware und `GET /health` Endpunkt
 
 ---
 

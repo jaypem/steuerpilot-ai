@@ -91,9 +91,9 @@
 
 ## Phase 9: Backend — SQLite Session-Memory
 
-- [ ] **9.1** `app/database.py` mit `aiosqlite` — Tabellen `sessions` und `messages`
-- [ ] **9.2** Sessions-Router: `GET /api/sessions`, `GET /api/sessions/{id}`, `DELETE /api/sessions/{id}`
-- [ ] **9.3** Chat-Endpunkt mit Persistenz verbinden (Message nach Stream in DB schreiben)
+- [x] **9.1** `app/database.py` mit `aiosqlite` — Tabellen `sessions` und `messages`
+- [x] **9.2** Sessions-Router: `GET /api/sessions`, `GET /api/sessions/{id}`, `DELETE /api/sessions/{id}`
+- [x] **9.3** Chat-Endpunkt mit Persistenz verbinden (Message nach Stream in DB schreiben)
 
 ---
 

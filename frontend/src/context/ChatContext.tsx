@@ -4,16 +4,24 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
 } from "react";
-
 import type { Message } from "@/types/chat";
 import type { Session } from "@/types/session";
 import { useMockChat } from "@/hooks/useMockChat";
+import { useChatAPI } from "@/hooks/useChatAPI";
 import { MOCK_SESSIONS } from "@/lib/mockSessions";
+import {
+  deleteSession as apiDeleteSession,
+  fetchSessionMessages,
+  fetchSessions,
+} from "@/lib/api";
 
-// ─── Initiale Demo-Nachrichten für Session 1 ────────────────────────────────
+const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK !== "false";
+
+// ─── Initial demo messages (mock mode only) ───────────────────────────────────
 
 const INITIAL_MESSAGES: Message[] = [
   {
@@ -38,14 +46,15 @@ const INITIAL_MESSAGES: Message[] = [
     riskBadge: {
       level: "low",
       label: "Unstreitig",
-      explanation: "Seit 2023 gesetzlich klar geregelt in § 4 Abs. 5 Nr. 6b EStG.",
+      explanation:
+        "Seit 2023 gesetzlich klar geregelt in § 4 Abs. 5 Nr. 6b EStG.",
     },
     savingAmount: 252,
     timestamp: new Date(),
   },
 ];
 
-// ─── Typen ───────────────────────────────────────────────────────────────────
+// ─── Context types ────────────────────────────────────────────────────────────
 
 export interface SavingEntry {
   label: string;
@@ -54,23 +63,21 @@ export interface SavingEntry {
 }
 
 interface ChatContextValue {
-  // Chat
   messages: Message[];
   isLoading: boolean;
   submitMessage: (text: string) => void;
   errorMessage: string | null;
   clearError: () => void;
-  // Sessions
   sessions: Session[];
   activeSessionId: string;
   selectSession: (id: string) => void;
   newSession: () => void;
-  // Computed
+  deleteSession: (id: string) => void;
   totalSaving: number;
   savingEntries: SavingEntry[];
 }
 
-// ─── Context ─────────────────────────────────────────────────────────────────
+// ─── Context + hook ───────────────────────────────────────────────────────────
 
 const ChatContext = createContext<ChatContextValue | null>(null);
 
@@ -80,62 +87,73 @@ export function useChatContext() {
   return ctx;
 }
 
-// ─── Provider ────────────────────────────────────────────────────────────────
+// ─── Shared derived-state helper ──────────────────────────────────────────────
 
-export function ChatProvider({ children }: { children: React.ReactNode }) {
+function useSavingDerived(messages: Message[]) {
+  const savingEntries = useMemo<SavingEntry[]>(
+    () =>
+      messages
+        .filter((m) => m.role === "assistant" && m.savingAmount)
+        .map((m) => ({
+          label: m.content.split("\n")[0].slice(0, 65),
+          amount: m.savingAmount!,
+          riskLevel: m.riskBadge?.level ?? "low",
+        })),
+    [messages],
+  );
+
+  const totalSaving = useMemo(
+    () => savingEntries.reduce((sum, e) => sum + e.amount, 0),
+    [savingEntries],
+  );
+
+  return { savingEntries, totalSaving };
+}
+
+// ─── Mock Provider ────────────────────────────────────────────────────────────
+
+function MockProvider({ children }: { children: React.ReactNode }) {
   const [sessions, setSessions] = useState<Session[]>(MOCK_SESSIONS);
   const [activeSessionId, setActiveSessionId] = useState<string>(
-    MOCK_SESSIONS[0].id
+    MOCK_SESSIONS[0].id,
   );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
   const clearError = useCallback(() => setErrorMessage(null), []);
 
   const { messages, isLoading, submitMessage } = useMockChat({
     initialMessages: INITIAL_MESSAGES,
   });
 
-  // Gesamt-Ersparnis + Positions-Liste aus aktuellen Nachrichten berechnen
-  const savingEntries = useMemo<SavingEntry[]>(() => {
-    return messages
-      .filter((m) => m.role === "assistant" && m.savingAmount)
-      .map((m) => ({
-        label: m.content.split("\n")[0].slice(0, 65),
-        amount: m.savingAmount!,
-        riskLevel: m.riskBadge?.level ?? "low",
-      }));
-  }, [messages]);
-
-  const totalSaving = useMemo(
-    () => savingEntries.reduce((sum, e) => sum + e.amount, 0),
-    [savingEntries]
-  );
+  const { savingEntries, totalSaving } = useSavingDerived(messages);
 
   const selectSession = useCallback((id: string) => {
     setActiveSessionId(id);
-    // In Phase 10 werden hier echte Session-Messages geladen
   }, []);
 
   const newSession = useCallback(() => {
     const id = `session-${Date.now()}`;
-    const newSess: Session = {
-      id,
-      title: "Neue Konversation",
-      createdAt: new Date(),
-      messageCount: 0,
-    };
-    setSessions((prev) => [newSess, ...prev]);
+    setSessions((prev) => [
+      { id, title: "Neue Konversation", createdAt: new Date(), messageCount: 0 },
+      ...prev,
+    ]);
     setActiveSessionId(id);
   }, []);
 
-  // Aktive Session messageCount + totalSaving aktuell halten
+  const deleteSess = useCallback((id: string) => {
+    setSessions((prev) => prev.filter((s) => s.id !== id));
+    setActiveSessionId((cur) =>
+      cur === id ? `session-${Date.now()}` : cur,
+    );
+  }, []);
+
+  // Keep active session stats in sync
   useMemo(() => {
     setSessions((prev) =>
       prev.map((s) =>
         s.id === activeSessionId
           ? { ...s, messageCount: messages.length, totalSaving }
-          : s
-      )
+          : s,
+      ),
     );
   }, [messages.length, totalSaving, activeSessionId]);
 
@@ -151,11 +169,115 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         activeSessionId,
         selectSession,
         newSession,
+        deleteSession: deleteSess,
         totalSaving,
         savingEntries,
       }}
     >
       {children}
     </ChatContext.Provider>
+  );
+}
+
+// ─── API Provider ─────────────────────────────────────────────────────────────
+
+function APIProvider({ children }: { children: React.ReactNode }) {
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<string>(
+    () => crypto.randomUUID(),
+  );
+  const [extraError, setExtraError] = useState<string | null>(null);
+
+  const refreshSessions = useCallback(() => {
+    fetchSessions()
+      .then(setSessions)
+      .catch((err: unknown) =>
+        setExtraError(
+          err instanceof Error ? err.message : "Sessions konnten nicht geladen werden",
+        ),
+      );
+  }, []);
+
+  // Load sessions on mount
+  useEffect(() => {
+    refreshSessions();
+  }, [refreshSessions]);
+
+  const {
+    messages,
+    isLoading,
+    submitMessage,
+    errorMessage: apiError,
+    resetMessages,
+  } = useChatAPI({ sessionId: activeSessionId, onDone: refreshSessions });
+
+  const errorMessage = apiError ?? extraError;
+  const clearError = useCallback(() => {
+    setExtraError(null);
+  }, []);
+
+  const { savingEntries, totalSaving } = useSavingDerived(messages);
+
+  const selectSession = useCallback(
+    async (id: string) => {
+      setActiveSessionId(id);
+      try {
+        const msgs = await fetchSessionMessages(id);
+        resetMessages(msgs);
+      } catch {
+        resetMessages([]);
+      }
+    },
+    [resetMessages],
+  );
+
+  const newSession = useCallback(() => {
+    const id = crypto.randomUUID();
+    setActiveSessionId(id);
+    resetMessages([]);
+  }, [resetMessages]);
+
+  const deleteSess = useCallback(
+    async (id: string) => {
+      await apiDeleteSession(id).catch(() => null);
+      setSessions((prev) => prev.filter((s) => s.id !== id));
+      if (activeSessionId === id) {
+        const next = crypto.randomUUID();
+        setActiveSessionId(next);
+        resetMessages([]);
+      }
+    },
+    [activeSessionId, resetMessages],
+  );
+
+  return (
+    <ChatContext.Provider
+      value={{
+        messages,
+        isLoading,
+        submitMessage,
+        errorMessage,
+        clearError,
+        sessions,
+        activeSessionId,
+        selectSession,
+        newSession,
+        deleteSession: deleteSess,
+        totalSaving,
+        savingEntries,
+      }}
+    >
+      {children}
+    </ChatContext.Provider>
+  );
+}
+
+// ─── Public ChatProvider (picks implementation based on USE_MOCK) ─────────────
+
+export function ChatProvider({ children }: { children: React.ReactNode }) {
+  return USE_MOCK ? (
+    <MockProvider>{children}</MockProvider>
+  ) : (
+    <APIProvider>{children}</APIProvider>
   );
 }

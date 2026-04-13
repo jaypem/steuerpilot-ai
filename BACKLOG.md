@@ -99,11 +99,11 @@
 
 ## Phase 10: Frontend — Echte API-Anbindung
 
-- [ ] **10.1** API-Client `src/lib/api.ts` mit `fetch`-basiertem SSE via `ReadableStream`
-- [ ] **10.2** SSE-Parser `src/lib/sseParser.ts`
-- [ ] **10.3** `useChatAPI`-Hook als Drop-in-Ersatz für `useMockChat`
-- [ ] **10.4** Feature-Flag `NEXT_PUBLIC_USE_MOCK` zum Umschalten Mock ↔ echte API
-- [ ] **10.5** Session-Lade-Logik in `SessionSidebar`
+- [x] **10.1** API-Client `src/lib/api.ts` mit `fetch`-basiertem SSE via `ReadableStream`
+- [x] **10.2** SSE-Parser `src/lib/sseParser.ts`
+- [x] **10.3** `useChatAPI`-Hook als Drop-in-Ersatz für `useMockChat`
+- [x] **10.4** Feature-Flag `NEXT_PUBLIC_USE_MOCK` zum Umschalten Mock ↔ echte API
+- [x] **10.5** Session-Lade-Logik in `SessionSidebar`
 
 ---
 

@@ -47,10 +47,10 @@
 
 ## Phase 4: Frontend — Mock-SSE-Streaming
 
-- [ ] **4.1** Mock-Daten in `src/lib/mockData.ts` (5–8 Frage-Antwort-Paare mit Source-Markern)
-- [ ] **4.2** `useMockChat`-Hook mit simuliertem Streaming (Wort für Wort via `setInterval`)
-- [ ] **4.3** Streaming-Cursor (`▊`) in `AssistantMessage` während `isStreaming === true`
-- [ ] **4.4** `useMockChat` in `ChatContainer` einbinden
+- [x] **4.1** Mock-Daten in `src/lib/mockData.ts` (7 Frage-Antwort-Paare: Homeoffice, Laptop, Pendler, Riester, Handwerker, Weiterbildung, Versicherung)
+- [x] **4.2** `useMockChat`-Hook mit simuliertem Streaming (35ms/Wort via `setInterval`, Sources + Badge nach Stream-Ende)
+- [x] **4.3** Streaming-Cursor (`animate-pulse` Balken) in `AssistantMessage` — war bereits vorhanden
+- [x] **4.4** `useMockChat` in `ChatContainer` eingebunden, setTimeout-Platzhalter entfernt
 
 ---
 

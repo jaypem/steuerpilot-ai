@@ -130,8 +130,8 @@
 
 ## Phase 13: Backend — Ausgaben-Scan
 
-- [ ] **13.1** Scan-Schemas: `ScanRequest`, `ScanResult` in `app/models/scan.py`
-- [ ] **13.2** `POST /api/scan` in `app/routers/scan.py` mit RAG + Claude
+- [x] **13.1** Scan-Schemas: `ScanRequest`, `ScanResult` in `app/models/scan.py`
+- [x] **13.2** `POST /api/scan` in `app/routers/scan.py` mit RAG + Claude
 
 ---
 

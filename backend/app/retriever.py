@@ -13,7 +13,7 @@ from functools import lru_cache
 from typing import TYPE_CHECKING
 
 import chromadb
-from llama_index.core.base_retriever import BaseRetriever
+from llama_index.core.retrievers import BaseRetriever
 from llama_index.core.schema import NodeWithScore, QueryBundle, TextNode
 from llama_index.core.vector_stores import MetadataFilter, MetadataFilters
 from llama_index.retrievers.bm25 import BM25Retriever
@@ -53,7 +53,7 @@ def _nodes_from_chroma(
         results.get("metadatas", []) or [],
     ):
         if text:
-            nodes.append(TextNode(text=text, node_id=doc_id, metadata=meta or {}))
+            nodes.append(TextNode(text=text, id_=doc_id, metadata=meta or {}))
     return nodes
 
 

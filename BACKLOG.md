@@ -137,9 +137,9 @@
 
 ## Phase 14: Qualitätssicherung und Evaluation
 
-- [ ] **14.1** Unit Tests: `test_parser.py`, `test_retriever.py`, `test_reference_resolver.py`, `test_chat_api.py`
-- [ ] **14.2** Goldset anlegen: `evaluation/goldset.json` mit 20 Frage-Antwort-Paaren
-- [ ] **14.3** RAGAS-Evaluation: `evaluation/eval.py`, CLI-Befehl `steuerpilot eval`
+- [x] **14.1** Unit Tests: `test_parser.py`, `test_retriever.py`, `test_reference_resolver.py`, `test_chat_api.py`
+- [x] **14.2** Goldset anlegen: `evaluation/goldset.json` mit 20 Frage-Antwort-Paaren
+- [x] **14.3** RAGAS-Evaluation: `evaluation/eval.py`, CLI-Befehl `steuerpilot eval`
 
 ---
 

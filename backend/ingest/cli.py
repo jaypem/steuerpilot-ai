@@ -165,6 +165,40 @@ def search(
     console.print(table)
 
 
+# ─── eval ─────────────────────────────────────────────────────────────────────
+
+
+@app.command()
+def eval(
+    year: int = typer.Option(2025, help="Steuerjahr für den RAG-Filter"),
+    chroma_path: str = typer.Option("chroma_db", help="Pfad zur Chroma-Datenbank"),
+    output: str = typer.Option("", help="Optionaler Pfad für JSON-Ausgabe"),
+    limit: int = typer.Option(0, help="Nur N Fragen auswerten (0 = alle)"),
+    verbose: bool = typer.Option(False, "--verbose", "-v"),
+) -> None:
+    """RAGAS-Evaluation über das Goldset (20 Frage-Antwort-Paare) ausführen.
+
+    Benötigt:
+      1. Aufgebauten RAG-Index: 'steuerpilot ingest --year <year>'
+      2. Eval-Dependencies: 'uv add --group eval ragas langchain-anthropic langchain-huggingface datasets'
+      3. ANTHROPIC_API_KEY in .env
+    """
+    _setup_logging(verbose)
+
+    # Change working directory so relative chroma_path and .env resolve correctly
+    import os
+    os.chdir(_BACKEND_DIR)
+
+    from evaluation.eval import run_evaluation
+
+    run_evaluation(
+        chroma_path=chroma_path,
+        tax_year=year,
+        output_path=output or None,
+        limit=limit or None,
+    )
+
+
 # ─── Entry point ──────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":

@@ -1,0 +1,167 @@
+{
+  "version": "1.0",
+  "tax_year": 2025,
+  "description": "Goldset für steuerpilot-ai RAGAS-Evaluation — 20 Frage-Antwort-Paare",
+  "questions": [
+    {
+      "id": "q01",
+      "category": "homeoffice",
+      "question": "Kann ich für mein Homeoffice die Tagespauschale absetzen, obwohl ich kein abgeschlossenes Arbeitszimmer habe?",
+      "ground_truth": "Ja. Die Homeoffice-Tagespauschale beträgt 6 € pro Tag, maximal 1.260 € pro Jahr (210 Tage), und ist auch ohne abgeschlossenes Arbeitszimmer absetzbar. Sie wird als Werbungskosten in der Anlage N geltend gemacht. Rechtsgrundlage: § 4 Abs. 5 Satz 1 Nr. 6b EStG.",
+      "relevant_paragraphs": ["§ 4 EStG", "§ 9 EStG"],
+      "expected_sources": ["EStG"]
+    },
+    {
+      "id": "q02",
+      "category": "homeoffice",
+      "question": "Wann lohnt sich ein anerkanntes Arbeitszimmer gegenüber der Tagespauschale?",
+      "ground_truth": "Ein abgeschlossenes häusliches Arbeitszimmer lohnt sich, wenn die tatsächlichen Kosten (anteilige Miete, Strom, Internet) die maximale Tagespauschale von 1.260 € übersteigen. Seit 2023 sind die Arbeitszimmerkosten auch ohne den Nachweis 'kein anderer Arbeitsplatz' in voller Höhe abzugsfähig, wenn das Arbeitszimmer den Mittelpunkt der beruflichen Tätigkeit bildet. Rechtsgrundlage: § 4 Abs. 5 Satz 1 Nr. 6b EStG.",
+      "relevant_paragraphs": ["§ 4 EStG"],
+      "expected_sources": ["EStG"]
+    },
+    {
+      "id": "q03",
+      "category": "arbeitsmittel",
+      "question": "Kann ich meinen Laptop (1.200 €) sofort vollständig als Werbungskosten absetzen?",
+      "ground_truth": "Ja, seit 2021 können digitale Arbeitsmittel (Laptops, PCs, Monitore) im Jahr der Anschaffung vollständig abgeschrieben werden (GWG-Sofortabschreibung bzw. Sonderabschreibung). Bei 1.200 € Anschaffungskosten und einem Steuersatz von 30 % ergibt sich eine Steuerersparnis von ca. 360 €. Als Arbeitnehmer sind diese Kosten als Werbungskosten in der Anlage N einzutragen. Rechtsgrundlage: § 9 Abs. 1 Satz 3 Nr. 6 EStG, § 6 Abs. 2 EStG.",
+      "relevant_paragraphs": ["§ 9 EStG", "§ 6 EStG"],
+      "expected_sources": ["EStG"]
+    },
+    {
+      "id": "q04",
+      "category": "arbeitsmittel",
+      "question": "Ich habe einen Schreibtisch für 800 € für mein Homeoffice gekauft. Wie setze ich ihn ab?",
+      "ground_truth": "Ein Schreibtisch über 800 € netto (952 € brutto) muss über die Nutzungsdauer von 13 Jahren linear abgeschrieben werden (AfA). Liegt der Preis darunter, greift die GWG-Sofortabschreibung. Bei ausschließlicher beruflicher Nutzung ist der volle Betrag als Werbungskosten abzugsfähig. Rechtsgrundlage: § 9 Abs. 1 Satz 3 Nr. 6 EStG, § 7 EStG.",
+      "relevant_paragraphs": ["§ 9 EStG", "§ 7 EStG"],
+      "expected_sources": ["EStG"]
+    },
+    {
+      "id": "q05",
+      "category": "fahrtkosten",
+      "question": "Wie hoch ist die Pendlerpauschale und wie berechne ich sie?",
+      "ground_truth": "Die Pendlerpauschale (Entfernungspauschale) beträgt 0,30 € pro Entfernungskilometer für die ersten 20 km und 0,38 € ab dem 21. km (ab 2022). Sie wird für jeden Arbeitstag berechnet, an dem der Arbeitnehmer seinen Arbeitsplatz aufgesucht hat. Bei 230 Arbeitstagen und 30 km Entfernung: (20 km × 0,30 € + 10 km × 0,38 €) × 230 = 2.622 €. Rechtsgrundlage: § 9 Abs. 1 Satz 3 Nr. 4 EStG.",
+      "relevant_paragraphs": ["§ 9 EStG"],
+      "expected_sources": ["EStG"]
+    },
+    {
+      "id": "q06",
+      "category": "fahrtkosten",
+      "question": "Kann ich Dienstreisen mit dem privaten PKW absetzen, wenn mein Arbeitgeber nichts erstattet?",
+      "ground_truth": "Ja. Dienstlich veranlasste Reisekosten mit dem privaten PKW sind als Werbungskosten absetzbar. Der pauschale Kilometersatz beträgt 0,30 € pro km (Hin- und Rückweg). Alternativ können die tatsächlichen Kosten (Kraftstoff, Abschreibung) angesetzt werden, was bei neueren oder teuren Fahrzeugen vorteilhafter sein kann. Rechtsgrundlage: § 9 Abs. 1 Satz 3 Nr. 4a EStG.",
+      "relevant_paragraphs": ["§ 9 EStG"],
+      "expected_sources": ["EStG"]
+    },
+    {
+      "id": "q07",
+      "category": "weiterbildung",
+      "question": "Ich habe 600 € für einen Python-Kurs bezahlt. Ist das absetzbar?",
+      "ground_truth": "Ja, Fortbildungskosten zur Verbesserung oder Erhaltung beruflicher Fähigkeiten sind in voller Höhe als Werbungskosten absetzbar. Der Python-Kurs ist absetzbar, wenn er beruflichen Bezug hat (z.B. für IT-Berufe oder Datenanalyse). Belege aufbewahren (Rechnung, Teilnahmebestätigung). Rechtsgrundlage: § 9 Abs. 1 Satz 1 EStG.",
+      "relevant_paragraphs": ["§ 9 EStG"],
+      "expected_sources": ["EStG"]
+    },
+    {
+      "id": "q08",
+      "category": "weiterbildung",
+      "question": "Kann ich Fachliteratur (Steuerrechtsbücher, Fachzeitschriften) absetzen?",
+      "ground_truth": "Ja. Fachliteratur, die beruflich genutzt wird, ist vollständig als Werbungskosten absetzbar. Dies gilt für Bücher, Fachzeitschriften, Online-Abonnements und digitale Fachdatenbanken. Eine klare berufliche Veranlassung muss erkennbar sein — allgemeine Allgemeinbildung oder Hobbyinteressen sind nicht abzugsfähig. Rechtsgrundlage: § 9 Abs. 1 Satz 1 EStG.",
+      "relevant_paragraphs": ["§ 9 EStG"],
+      "expected_sources": ["EStG"]
+    },
+    {
+      "id": "q09",
+      "category": "versicherungen",
+      "question": "Welche Versicherungen kann ich als Arbeitnehmer in der Steuererklärung absetzen?",
+      "ground_truth": "Als Sonderausgaben absetzbar sind: Kranken- und Pflegeversicherungsbeiträge (Basisabsicherung unbegrenzt), Rentenversicherungsbeiträge (bis zu 29.344 € für 2025), Berufsunfähigkeitsversicherung, Haftpflichtversicherung. Beruflich veranlasste Versicherungen (Berufs-Haftpflicht, D&O) sind Werbungskosten. Rechtsgrundlage: § 10 Abs. 1 Nr. 2, 3 EStG.",
+      "relevant_paragraphs": ["§ 10 EStG"],
+      "expected_sources": ["EStG"]
+    },
+    {
+      "id": "q10",
+      "category": "versicherungen",
+      "question": "Ist eine Berufsunfähigkeitsversicherung steuerlich absetzbar?",
+      "ground_truth": "Ja. Die Beiträge zur Berufsunfähigkeitsversicherung (BU) sind als Sonderausgaben absetzbar, allerdings nur im Rahmen des Höchstbetrags für sonstige Vorsorgeaufwendungen (1.900 € für Arbeitnehmer oder 2.800 € für Selbstständige). In der Praxis ist dieser Höchstbetrag oft durch Krankenversicherungsbeiträge bereits ausgeschöpft. Rechtsgrundlage: § 10 Abs. 1 Nr. 3a EStG.",
+      "relevant_paragraphs": ["§ 10 EStG"],
+      "expected_sources": ["EStG"]
+    },
+    {
+      "id": "q11",
+      "category": "spenden",
+      "question": "Bis zu welchem Betrag kann ich Spenden von der Steuer absetzen?",
+      "ground_truth": "Spenden an anerkannte gemeinnützige Organisationen sind bis zu 20 % des Gesamtbetrags der Einkünfte als Sonderausgaben abzugsfähig. Nicht verbrauchte Spendenbeträge können in Folgejahre vorgetragen werden (Spendenvortrag). Für Spenden an politische Parteien gilt eine Steuerermäßigung von 50 % der Spende, maximal 825 € (1.650 € für Verheiratete). Rechtsgrundlage: § 10b EStG.",
+      "relevant_paragraphs": ["§ 10b EStG"],
+      "expected_sources": ["EStG"]
+    },
+    {
+      "id": "q12",
+      "category": "handwerker",
+      "question": "Ich habe mein Badezimmer für 4.000 € renoviert. Was kann ich steuerlich absetzen?",
+      "ground_truth": "Handwerkerleistungen im selbst bewohnten Haushalt sind mit 20 % der Lohnkosten (nicht Materialkosten) als Steuerermäßigung direkt von der Steuerschuld abziehbar, maximal 1.200 € pro Jahr (20 % von 6.000 € Lohnkosten). Die Rechnung muss per Überweisung bezahlt worden sein — Barzahlung ist nicht anerkannt. Rechtsgrundlage: § 35a Abs. 3 EStG.",
+      "relevant_paragraphs": ["§ 35a EStG"],
+      "expected_sources": ["EStG"]
+    },
+    {
+      "id": "q13",
+      "category": "kinderbetreuung",
+      "question": "Kann ich die Kita-Gebühren für mein Kind absetzen?",
+      "ground_truth": "Ja. Kinderbetreuungskosten für Kinder unter 14 Jahren sind zu zwei Dritteln als Sonderausgaben absetzbar, maximal 4.000 € pro Kind und Jahr (zwei Drittel von 6.000 €). Es müssen Belege (Rechnung + Überweisung) vorliegen. Verpflegungskosten sind davon ausgenommen. Rechtsgrundlage: § 10 Abs. 1 Nr. 5 EStG.",
+      "relevant_paragraphs": ["§ 10 EStG"],
+      "expected_sources": ["EStG"]
+    },
+    {
+      "id": "q14",
+      "category": "haushaltsnahe",
+      "question": "Was sind haushaltsnahe Dienstleistungen und wie werden sie gefördert?",
+      "ground_truth": "Haushaltsnahe Dienstleistungen (z.B. Reinigungskraft, Gartenarbeit, Winterdienst) sind mit 20 % der Lohnkosten als Steuerermäßigung abzugsfähig, maximal 4.000 € pro Jahr (20 % von 20.000 €). Zusammen mit Handwerkerleistungen beträgt der Gesamthöchstbetrag 5.200 € (4.000 € + 1.200 €). Rechtsgrundlage: § 35a Abs. 2 EStG.",
+      "relevant_paragraphs": ["§ 35a EStG"],
+      "expected_sources": ["EStG"]
+    },
+    {
+      "id": "q15",
+      "category": "freiberufler",
+      "question": "Ich bin Freiberufler und nutze mein Auto zu 60 % beruflich. Wie setze ich die Kosten ab?",
+      "ground_truth": "Als Freiberufler können Sie die tatsächlichen Fahrzeugkosten anteilig als Betriebsausgaben absetzen. Bei 60 % beruflicher Nutzung können 60 % der Gesamtkosten (Kraftstoff, Versicherung, Kfz-Steuer, AfA) geltend gemacht werden. Alternativ kann die 1 %-Regelung für die Privatnutzung angewendet werden, was bei älteren oder günstigen Fahrzeugen vorteilhafter sein kann. Führen Sie ein Fahrtenbuch, um die berufliche Nutzung nachzuweisen. Rechtsgrundlage: § 4 Abs. 5, § 6 Abs. 1 Nr. 4 EStG.",
+      "relevant_paragraphs": ["§ 4 EStG", "§ 6 EStG"],
+      "expected_sources": ["EStG"]
+    },
+    {
+      "id": "q16",
+      "category": "freiberufler",
+      "question": "Kann ich Bewirtungskosten für Kundengespräche als Betriebsausgaben absetzen?",
+      "ground_truth": "Ja, aber nur zu 70 %. Bewirtungskosten aus geschäftlichem Anlass sind zu 70 % als Betriebsausgaben absetzbar (30 % nicht abzugsfähiger Eigenanteil). Voraussetzung: vollständige Rechnung mit Angabe von Ort, Datum, Teilnehmern und Anlass. Die Rechnung muss vom Unternehmer unterschrieben werden. Rechtsgrundlage: § 4 Abs. 5 Satz 1 Nr. 2 EStG.",
+      "relevant_paragraphs": ["§ 4 EStG"],
+      "expected_sources": ["EStG"]
+    },
+    {
+      "id": "q17",
+      "category": "riester",
+      "question": "Lohnt sich ein Riester-Vertrag steuerlich noch?",
+      "ground_truth": "Riester-Beiträge sind als Sonderausgaben bis zu 2.100 € absetzbar (inklusive staatlicher Zulagen). Die Grundzulage beträgt 175 €, je Kinderzulage 300 € (für ab 2008 geborene Kinder). Steuerlich lohnt es sich vor allem bei höherem Einkommen, wenn der Steuervorteil die Zulagen übersteigt (Günstigerprüfung). Rechtsgrundlage: § 10a EStG.",
+      "relevant_paragraphs": ["§ 10a EStG"],
+      "expected_sources": ["EStG"]
+    },
+    {
+      "id": "q18",
+      "category": "aussergewoehnliche_belastungen",
+      "question": "Ich habe 3.000 € Krankheitskosten selbst bezahlt. Kann ich diese absetzen?",
+      "ground_truth": "Außergewöhnliche Belastungen wie Krankheitskosten sind absetzbar, aber erst nach Abzug der 'zumutbaren Belastung' (je nach Einkommen und Familienstand 1–7 % des Gesamtbetrags der Einkünfte). Nur der Betrag oberhalb dieser Schwelle ist abzugsfähig. Sammeln Sie alle Belege und setzen Sie die Kosten in der Anlage Außergewöhnliche Belastungen ein. Rechtsgrundlage: § 33 EStG.",
+      "relevant_paragraphs": ["§ 33 EStG"],
+      "expected_sources": ["EStG"]
+    },
+    {
+      "id": "q19",
+      "category": "doppelte_haushaltsfuehrung",
+      "question": "Ich unterhalte aus beruflichen Gründen eine zweite Wohnung am Arbeitsort. Was kann ich absetzen?",
+      "ground_truth": "Notwendige Mehraufwendungen bei doppelter Haushaltsführung sind als Werbungskosten absetzbar: Unterkunftskosten am Arbeitsort bis 1.000 € monatlich, Heimfahrten (eine pro Woche, Entfernungspauschale), Verpflegungsmehraufwand in den ersten drei Monaten. Voraussetzung: eigener Hausstand am Heimatort und Mittelpunkt der Lebensinteressen dort. Rechtsgrundlage: § 9 Abs. 1 Satz 3 Nr. 5 EStG.",
+      "relevant_paragraphs": ["§ 9 EStG"],
+      "expected_sources": ["EStG"]
+    },
+    {
+      "id": "q20",
+      "category": "verlustabzug",
+      "question": "Ich habe in diesem Jahr einen Verlust aus selbstständiger Tätigkeit. Was passiert damit?",
+      "ground_truth": "Verluste aus selbstständiger Tätigkeit können mit anderen positiven Einkünften im selben Jahr verrechnet werden (horizontaler und vertikaler Verlustausgleich). Verbleibende Verluste werden auf das Vorjahr zurückgetragen (Verlustrücktrag bis 10 Mio. €) oder in Folgejahre vorgetragen (Verlustvortrag unbegrenzt, aber Mindestbesteuerung ab 1 Mio. € positiven Einkünften). Rechtsgrundlage: § 10d EStG.",
+      "relevant_paragraphs": ["§ 10d EStG"],
+      "expected_sources": ["EStG"]
+    }
+  ]
+}

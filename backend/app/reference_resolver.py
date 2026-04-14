@@ -101,7 +101,7 @@ def resolve_references(
         if doc_id in seen_ids:
             continue
         node = NodeWithScore(
-            node=TextNode(text=text or "", node_id=doc_id, metadata=meta or {}),
+            node=TextNode(text=text or "", id_=doc_id, metadata=meta or {}),
             score=0.5,  # neutral score for reference-resolved nodes
         )
         new_nodes.append(node)

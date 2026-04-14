@@ -119,12 +119,12 @@
 
 ## Phase 12: Backend — RAG-Pipeline
 
-- [ ] **12.1** Ingest-Dependencies ergänzen (Chroma, sentence-transformers, pdfplumber, bs4, httpx, typer)
-- [ ] **12.2** Ingest-Skript: `downloader.py`, `parser.py` (XML von gesetze-im-internet.de), `chunker.py`, `embedder.py`, `store.py`
-- [ ] **12.3** CLI: `steuerpilot ingest --year 2025`, `steuerpilot search "..."` via Typer
-- [ ] **12.4** Hybrid-Retriever: Dense (Chroma) + BM25 + Cross-Encoder Re-Ranking, `year`-Metadaten-Filter
-- [ ] **12.5** Verweis-Auflöser `app/reference_resolver.py` — rekursive `i.V.m.`-Auflösung
-- [ ] **12.6** `ContextChatEngine` in `app/engine.py` zusammenführen, Chat-Router anpassen
+- [x] **12.1** Ingest-Dependencies ergänzen (Chroma, sentence-transformers, pdfplumber, bs4, httpx, typer)
+- [x] **12.2** Ingest-Skript: `downloader.py`, `parser.py` (XML von gesetze-im-internet.de), `chunker.py`, `embedder.py`, `store.py`
+- [x] **12.3** CLI: `steuerpilot ingest --year 2025`, `steuerpilot search "..."` via Typer
+- [x] **12.4** Hybrid-Retriever: Dense (Chroma) + BM25 + Cross-Encoder Re-Ranking, `year`-Metadaten-Filter
+- [x] **12.5** Verweis-Auflöser `app/reference_resolver.py` — rekursive `i.V.m.`-Auflösung
+- [x] **12.6** `ContextChatEngine` in `app/engine.py` zusammenführen, Chat-Router anpassen
 
 ---
 

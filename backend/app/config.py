@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "llama3.2"
 
+    # RAG — Chroma vector store path (relative to backend working directory)
+    chroma_path: str = "chroma_db"
+
 
 @lru_cache
 def get_settings() -> Settings:

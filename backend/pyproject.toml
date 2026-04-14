@@ -5,11 +5,25 @@ description = "RAG-basierter Steuerberater-Assistent — Backend"
 requires-python = ">=3.12"
 dependencies = [
     "aiosqlite>=0.22.1",
+    "beautifulsoup4>=4.14.3",
+    "chromadb>=1.5.7",
     "fastapi>=0.135.3",
+    "httpx>=0.28.1",
     "llama-index-core>=0.14.20",
+    "llama-index-embeddings-huggingface>=0.7.0",
     "llama-index-llms-anthropic>=0.11.2",
     "llama-index-llms-ollama>=0.10.1",
+    "llama-index-retrievers-bm25>=0.7.1",
+    "llama-index-vector-stores-chroma>=0.5.5",
+    "lxml>=6.0.4",
     "pydantic-settings>=2.13.1",
     "python-dotenv>=1.2.2",
+    "rank-bm25>=0.2.2",
+    "rich>=15.0.0",
+    "sentence-transformers>=5.4.0",
+    "typer[all]>=0.24.1",
     "uvicorn[standard]>=0.44.0",
 ]
+
+[project.scripts]
+steuerpilot = "ingest.cli:app"

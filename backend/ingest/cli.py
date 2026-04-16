@@ -2,8 +2,11 @@
 steuerpilot CLI — Developer / Ingest interface.
 
 Commands:
-  steuerpilot ingest  --year 2025 [--laws EStG AO UStG]
-  steuerpilot search  QUERY [--year 2025] [--top-k 5]
+  steuerpilot ingest       --year 2025 [--laws EStG AO UStG]
+  steuerpilot ingest-lstr  --year 2023
+  steuerpilot check-sources
+  steuerpilot search       QUERY [--year 2025] [--top-k 5]
+  steuerpilot eval         [--year 2025]
 """
 import asyncio
 import logging
@@ -163,6 +166,115 @@ def search(
         )
 
     console.print(table)
+
+
+# ─── ingest-lstr ──────────────────────────────────────────────────────────────
+
+
+@app.command(name="ingest-lstr")
+def ingest_lstr(
+    year: int = typer.Option(2023, help="LStR-Ausgabejahr (entspricht dem PDF-Jahr)"),
+    chroma_path: str = typer.Option("chroma_db", help="Pfad zur Chroma-Datenbank"),
+    verbose: bool = typer.Option(False, "--verbose", "-v"),
+) -> None:
+    """LStR-PDF herunterladen, parsen und in Chroma speichern."""
+    _setup_logging(verbose)
+
+    from ingest.scrapers.lstr import download_and_parse_lstr
+    from ingest.scrapers.registry import get_source
+    from ingest.store import store_documents
+
+    source = get_source("LStR")
+    console.rule(f"[bold]LStR {year}[/bold]")
+    console.print(f"  URL (verif. {source.verified_year}): {source.url}")
+
+    if year != source.verified_year:
+        console.print(
+            f"[yellow]⚠ Hinweis: Die URL wurde zuletzt für {source.verified_year} geprüft. "
+            f"Prüfe, ob für {year} eine neue Version vorliegt:[/yellow]"
+        )
+        console.print(f"  {source.update_hint}")
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+        transient=True,
+    ) as progress:
+        t = progress.add_task("LStR herunterladen und parsen…")
+        raw_dir = _RAW_DATA_DIR / str(year)
+        documents = asyncio.run(download_and_parse_lstr(raw_dir, year))
+        progress.update(t, completed=True)
+
+    console.print(f"  LStR: [green]{len(documents)} Abschnitte[/green] geparst")
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+    ) as progress:
+        progress.add_task("Einbetten und speichern LStR…")
+        stored = store_documents(documents, chroma_path, "LStR", year)
+
+    console.print(
+        f"\n[bold green]✓ LStR-Ingest abgeschlossen:[/bold green] "
+        f"{stored} Dokumente für LStR ({year}) in Chroma gespeichert."
+    )
+
+
+# ─── check-sources ────────────────────────────────────────────────────────────
+
+
+@app.command(name="check-sources")
+def check_sources(
+    verbose: bool = typer.Option(False, "--verbose", "-v"),
+) -> None:
+    """HTTP-HEAD-Check aller externen Quellen — für CI und jährliche URL-Prüfung.
+
+    Gibt Exit-Code 1 zurück wenn mindestens eine Quelle nicht erreichbar ist.
+    Für den GitHub Actions Cron-Job: .github/workflows/check-sources.yml
+    """
+    _setup_logging(verbose)
+
+    import httpx as _httpx
+    from ingest.scrapers.registry import all_sources
+
+    sources = all_sources()
+    table = Table(
+        title="Externe Quellen — Erreichbarkeitscheck",
+        show_lines=True,
+    )
+    table.add_column("Kürzel", style="cyan", no_wrap=True)
+    table.add_column("Name")
+    table.add_column("Verif.-Jahr", justify="right")
+    table.add_column("Status", justify="center")
+    table.add_column("URL")
+
+    any_failed = False
+
+    for src in sources:
+        try:
+            resp = _httpx.head(src.url, timeout=15, follow_redirects=True)
+            ok = resp.status_code < 400
+            status = f"[green]HTTP {resp.status_code}[/green]" if ok else f"[red]HTTP {resp.status_code}[/red]"
+            if not ok:
+                any_failed = True
+        except Exception as exc:
+            status = f"[red]FEHLER: {exc}[/red]"
+            any_failed = True
+
+        table.add_row(src.key, src.name, str(src.verified_year), status, src.url[:70])
+
+    console.print(table)
+
+    if any_failed:
+        console.print(
+            "[bold red]✗ Mindestens eine Quelle ist nicht erreichbar.[/bold red]\n"
+            "Bitte URL in [cyan]ingest/scrapers/registry.py[/cyan] aktualisieren."
+        )
+        raise typer.Exit(code=1)
+    else:
+        console.print("[bold green]✓ Alle Quellen erreichbar.[/bold green]")
 
 
 # ─── eval ─────────────────────────────────────────────────────────────────────

@@ -1,0 +1,58 @@
+name: Check External Sources
+
+# Runs every year on November 1st — new LStR editions are typically published
+# in autumn for the following tax year. Alerts via GitHub issue if a URL breaks.
+on:
+  schedule:
+    - cron: "0 9 1 11 *"   # 09:00 UTC on November 1st
+  workflow_dispatch:        # manual trigger for ad-hoc checks
+
+jobs:
+  check-sources:
+    name: URL Freshness Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: uv sync --no-dev
+
+      - name: Run check-sources
+        working-directory: backend
+        run: uv run steuerpilot check-sources
+
+      - name: Open issue on failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const today = new Date().toISOString().split('T')[0];
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `[check-sources] Externe Quelle nicht erreichbar (${today})`,
+              body: [
+                '## Jährlicher URL-Check fehlgeschlagen',
+                '',
+                `Datum: ${today}`,
+                '',
+                'Mindestens eine externe Quelle ist nicht mehr erreichbar.',
+                'Bitte URL in `backend/ingest/scrapers/registry.py` aktualisieren:',
+                '',
+                '- **LStR**: Bundesfinanzministerium → Steuern → Lohnsteuer-Richtlinien',
+                '  URL-Muster: `lohnsteuer-richtlinien-<YYYY>.pdf`',
+                '',
+                'Danach `steuerpilot ingest-lstr --year <YYYY>` ausführen.',
+              ].join('\n'),
+              labels: ['maintenance', 'data-pipeline'],
+            });

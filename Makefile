@@ -54,7 +54,7 @@ setup: ## Install all dependencies and initialise env files
 
 # ---- Local Development ------------------------------------------------------
 
-.PHONY: local.api local.web local.ingest
+.PHONY: local.api local.web local.ingest local.ingest-lstr check-sources
 
 local.api: ## Run the FastAPI backend (http://localhost:8000)
 	@cd backend && $(UV) run uvicorn app.main:app --reload
@@ -69,6 +69,12 @@ local.ingest-full: ## Build the full knowledge base — all 6 laws (YEAR=2025)
 	@cd backend && $(UV) run steuerpilot ingest \
 		--laws EStG EStDV AO UStG SolzG GewStG \
 		--year $(or $(YEAR),2025)
+
+local.ingest-lstr: ## Download and ingest LStR PDF (YEAR=2023)
+	@cd backend && $(UV) run steuerpilot ingest-lstr --year $(or $(YEAR),2023)
+
+check-sources: ## HTTP-HEAD check all external sources (exit 1 on failure)
+	@cd backend && $(UV) run steuerpilot check-sources
 
 # ---- Quality ----------------------------------------------------------------
 

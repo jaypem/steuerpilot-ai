@@ -1,8 +1,5 @@
 """
-Parses gesetze-im-internet.de XML into LlamaIndex Document objects.
-
-Each <norm> element that has an <enbez> starting with "§" becomes one Document.
-The text is extracted from <textdaten>/<text> (excluding <fussnoten>).
+Parses gesetze-im-internet.de XML into a two-level node hierarchy.
 
 XML structure (gesetze-im-internet.de DTD 1.01):
   <norm>
@@ -21,19 +18,26 @@ XML structure (gesetze-im-internet.de DTD 1.01):
     </textdaten>
   </norm>
 
-Metadata per Document:
-  law       — e.g. "EStG"
-  paragraph — e.g. "§ 4"
-  title     — e.g. "Betriebsausgaben"
-  year      — int, e.g. 2025
-  url       — canonical permalink on gesetze-im-internet.de
+Returned hierarchy (ParsedLaw):
+  parent_node  — full paragraph text (§ 4 EStG complete)
+  child_nodes  — one TextNode per <P> / Absatz
+
+Metadata per node:
+  law        — e.g. "EStG"
+  paragraph  — e.g. "§ 4"
+  title      — e.g. "Betriebsausgaben"
+  section    — e.g. "Abs. 1" (empty on parent nodes)
+  year       — int, e.g. 2025
+  url        — canonical permalink on gesetze-im-internet.de
+  node_level — "parent" | "child"
 """
 import logging
 import re
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from bs4 import BeautifulSoup
-from llama_index.core import Document
+from llama_index.core.schema import NodeRelationship, RelatedNodeInfo, TextNode
 
 logger = logging.getLogger(__name__)
 
@@ -47,9 +51,24 @@ _URL_BASES: dict[str, str] = {
     "GewStG": "https://www.gesetze-im-internet.de/gewstg/",
 }
 
-# Maps "§ 4" → "__4.html" (simplified — actual filenames vary)
 _PARA_RE = re.compile(r"§\s*(\d+[a-z]?)", re.IGNORECASE)
+_ABS_RE  = re.compile(r"^\((\d+[a-z]?)\)")  # "(1)" "(4a)" at start of <P> text
 
+
+# ─── Public types ─────────────────────────────────────────────────────────────
+
+@dataclass
+class ParsedLaw:
+    """Two-level hierarchy for one law-year ingest run."""
+    parent_nodes: list[TextNode] = field(default_factory=list)
+    child_nodes:  list[TextNode] = field(default_factory=list)
+
+    @property
+    def all_nodes(self) -> list[TextNode]:
+        return self.parent_nodes + self.child_nodes
+
+
+# ─── Helpers ──────────────────────────────────────────────────────────────────
 
 def _para_url(law: str, paragraph: str) -> str | None:
     base = _URL_BASES.get(law)
@@ -70,15 +89,32 @@ def _extract_text(node) -> str:
     return " ".join(parts)
 
 
-def parse_law_xml(xml_path: Path, law: str, year: int) -> list[Document]:
+def _abs_section(text: str) -> str:
+    """'(4a) …' → 'Abs. 4a';  text without prefix → ''."""
+    m = _ABS_RE.match(text.strip())
+    return f"Abs. {m.group(1)}" if m else ""
+
+
+def _stable_id(law: str, year: int, paragraph: str, section: str = "") -> str:
+    """Build a deterministic, URL-safe node ID."""
+    para_clean = re.sub(r"[^\w]", "", paragraph)      # "§ 9" → "9"
+    parts = [law, str(year), para_clean]
+    if section:
+        parts.append(re.sub(r"[^\w]", "", section))   # "Abs. 4a" → "Abs4a"
+    return "__".join(parts)
+
+
+# ─── Main parser ──────────────────────────────────────────────────────────────
+
+def parse_law_xml(xml_path: Path, law: str, year: int) -> ParsedLaw:
     """
-    Parse *xml_path* and return one Document per paragraph of *law*.
-    *year* is stored as integer metadata for Chroma filtering.
+    Parse *xml_path* and return a two-level hierarchy for *law* / *year*.
+    Each § paragraph becomes one parent node; each <P> (Absatz) one child node.
     """
     with open(xml_path, encoding="utf-8") as fh:
         soup = BeautifulSoup(fh.read(), "lxml-xml")
 
-    documents: list[Document] = []
+    result = ParsedLaw()
     skipped = 0
 
     for norm in soup.find_all("norm"):
@@ -87,7 +123,7 @@ def parse_law_xml(xml_path: Path, law: str, year: int) -> list[Document]:
             skipped += 1
             continue
 
-        # Paragraph reference (§ 1, § 2a, …) lives directly in <metadaten>/<enbez>
+        # Paragraph reference lives in <metadaten>/<enbez>
         enbez_tag = meta_tag.find("enbez")
         if not enbez_tag:
             skipped += 1
@@ -101,7 +137,7 @@ def parse_law_xml(xml_path: Path, law: str, year: int) -> list[Document]:
         title_tag = meta_tag.find("titel")
         title = title_tag.get_text(strip=True) if title_tag else ""
 
-        # Body text — extract from <text> only, skipping <fussnoten>
+        # Body — extract from <text> only, skipping <fussnoten>
         textdaten = norm.find("textdaten")
         if not textdaten:
             skipped += 1
@@ -112,31 +148,72 @@ def parse_law_xml(xml_path: Path, law: str, year: int) -> list[Document]:
             skipped += 1
             continue
 
-        text = _extract_text(text_node).strip()
-        if not text:
+        # ── Parent node (full paragraph text) ─────────────────────────────────
+        full_text = _extract_text(text_node).strip()
+        if not full_text:
             skipped += 1
             continue
 
-        doc_text = f"{paragraph} {law}"
+        parent_header = f"{paragraph} {law}"
         if title:
-            doc_text += f" — {title}"
-        doc_text += f"\n\n{text}"
+            parent_header += f" — {title}"
 
-        documents.append(
-            Document(
-                text=doc_text,
-                metadata={
-                    "law": law,
-                    "paragraph": paragraph,
-                    "title": title,
-                    "year": year,
-                    "url": _para_url(law, paragraph) or "",
-                },
-            )
+        parent_id = _stable_id(law, year, paragraph)
+        url = _para_url(law, paragraph) or ""
+        base_meta = {
+            "law": law,
+            "paragraph": paragraph,
+            "title": title,
+            "year": year,
+            "url": url,
+        }
+
+        parent_node = TextNode(
+            id_=parent_id,
+            text=f"{parent_header}\n\n{full_text}",
+            metadata={**base_meta, "section": "", "node_level": "parent"},
         )
 
+        # ── Child nodes (one per <P> / Absatz) ────────────────────────────────
+        children: list[TextNode] = []
+        p_tags = text_node.find_all("P")
+
+        for i, p_tag in enumerate(p_tags):
+            p_text = _extract_text(p_tag).strip()
+            if not p_text:
+                continue
+            # Skip footnote lines that slipped through (e.g. "(+++ …)")
+            if p_text.startswith("(+++"):
+                continue
+
+            section = _abs_section(p_text)
+            child_id = _stable_id(law, year, paragraph, section or f"p{i}")
+
+            child_header = parent_header
+            if section:
+                child_header += f", {section}"
+
+            child_node = TextNode(
+                id_=child_id,
+                text=f"{child_header}\n\n{p_text}",
+                metadata={**base_meta, "section": section, "node_level": "child"},
+                relationships={
+                    NodeRelationship.PARENT: RelatedNodeInfo(node_id=parent_id),
+                },
+            )
+            children.append(child_node)
+
+        # Link parent → children
+        if children:
+            parent_node.relationships[NodeRelationship.CHILD] = [
+                RelatedNodeInfo(node_id=c.node_id) for c in children
+            ]
+
+        result.parent_nodes.append(parent_node)
+        result.child_nodes.extend(children)
+
     logger.info(
-        "Parsed %s %d: %d documents, %d skipped",
-        law, year, len(documents), skipped,
+        "Parsed %s %d: %d parents, %d children, %d skipped",
+        law, year, len(result.parent_nodes), len(result.child_nodes), skipped,
     )
-    return documents
+    return result

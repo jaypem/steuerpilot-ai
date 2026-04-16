@@ -82,10 +82,13 @@ def ingest(
 
             # Parse
             progress.update(t, description=f"Parsen {law}…")
-            documents = parse_law_xml(xml_path, law, year)
+            result = parse_law_xml(xml_path, law, year)
             progress.update(t, completed=True)
 
-        console.print(f"  {law}: [green]{len(documents)} Paragraphen[/green] geparst")
+        console.print(
+            f"  {law}: [green]{len(result.parent_nodes)} Paragrafen[/green] → "
+            f"[cyan]{len(result.child_nodes)} Absätze[/cyan] geparst"
+        )
 
         with Progress(
             SpinnerColumn(),
@@ -93,9 +96,9 @@ def ingest(
             console=console,
         ) as progress:
             progress.add_task(f"Einbetten und speichern {law}…")
-            stored = store_documents(documents, chroma_path, law, year)
+            stored = store_documents(result, chroma_path, law, year)
 
-        console.print(f"  {law}: [green]{stored} Dokumente[/green] gespeichert\n")
+        console.print(f"  {law}: [green]{stored} Nodes[/green] in Chroma gespeichert\n")
         total_stored += stored
 
     console.print(
@@ -203,10 +206,10 @@ def ingest_lstr(
     ) as progress:
         t = progress.add_task("LStR herunterladen und parsen…")
         raw_dir = _RAW_DATA_DIR / str(year)
-        documents = asyncio.run(download_and_parse_lstr(raw_dir, year))
+        result = asyncio.run(download_and_parse_lstr(raw_dir, year))
         progress.update(t, completed=True)
 
-    console.print(f"  LStR: [green]{len(documents)} Abschnitte[/green] geparst")
+    console.print(f"  LStR: [green]{len(result.parent_nodes)} Abschnitte[/green] geparst")
 
     with Progress(
         SpinnerColumn(),
@@ -214,7 +217,7 @@ def ingest_lstr(
         console=console,
     ) as progress:
         progress.add_task("Einbetten und speichern LStR…")
-        stored = store_documents(documents, chroma_path, "LStR", year)
+        stored = store_documents(result, chroma_path, "LStR", year)
 
     console.print(
         f"\n[bold green]✓ LStR-Ingest abgeschlossen:[/bold green] "

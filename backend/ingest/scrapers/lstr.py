@@ -26,6 +26,7 @@ from pathlib import Path
 import httpx
 from llama_index.core import Document
 
+from ingest.parser import ParsedLaw
 from ingest.scrapers.registry import get_source
 
 logger = logging.getLogger(__name__)
@@ -106,7 +107,7 @@ def parse_lstr_pdf(pdf_bytes: bytes, year: int, url: str) -> list[Document]:
     return documents
 
 
-async def download_and_parse_lstr(dest_dir: Path, year: int) -> list[Document]:
+async def download_and_parse_lstr(dest_dir: Path, year: int) -> ParsedLaw:
     """
     Download the LStR PDF for *year* and return parsed Documents.
     The PDF is cached at *dest_dir*/LStR_<year>.pdf.
@@ -129,4 +130,7 @@ async def download_and_parse_lstr(dest_dir: Path, year: int) -> list[Document]:
         cache_path.write_bytes(pdf_bytes)
         logger.info("LStR: PDF gespeichert unter %s (%d bytes)", cache_path, len(pdf_bytes))
 
-    return parse_lstr_pdf(pdf_bytes, year, url)
+    documents = parse_lstr_pdf(pdf_bytes, year, url)
+    # LStR Randnummern are already leaf-level chunks — no further splitting needed.
+    # Use parent_nodes slot so store.py embeds them directly into Chroma.
+    return ParsedLaw(parent_nodes=documents, child_nodes=[])

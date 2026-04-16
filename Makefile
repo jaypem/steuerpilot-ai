@@ -76,6 +76,22 @@ local.ingest-lstr: ## Download and ingest LStR PDF (YEAR=2023)
 check-sources: ## HTTP-HEAD check all external sources (exit 1 on failure)
 	@cd backend && $(UV) run steuerpilot check-sources
 
+# ---- Knowledge-Base ---------------------------------------------------------
+
+.PHONY: search eval
+
+search: ## Search the vector index — QUERY="..." YEAR=2025 TOP_K=5
+	@cd backend && $(UV) run steuerpilot search \
+		"$(or $(QUERY),$(error QUERY is required — e.g. make search QUERY="Homeoffice"))" \
+		--year $(or $(YEAR),2025) \
+		--top-k $(or $(TOP_K),5)
+
+eval: ## Run RAGAS evaluation over the goldset (YEAR=2025, LIMIT=0)
+	@cd backend && $(UV) run steuerpilot eval \
+		--year $(or $(YEAR),2025) \
+		$(if $(LIMIT),--limit $(LIMIT)) \
+		$(if $(OUTPUT),--output $(OUTPUT))
+
 # ---- Quality ----------------------------------------------------------------
 
 .PHONY: test lint

@@ -78,7 +78,7 @@ check-sources: ## HTTP-HEAD check all external sources (exit 1 on failure)
 
 # ---- Knowledge-Base ---------------------------------------------------------
 
-.PHONY: search eval
+.PHONY: search eval eval.snapshot eval.ablation eval.compare
 
 search: ## Search the vector index — QUERY="..." YEAR=2025 TOP_K=5
 	@cd backend && $(UV) run python -m ingest.cli search \
@@ -86,11 +86,56 @@ search: ## Search the vector index — QUERY="..." YEAR=2025 TOP_K=5
 		--year $(or $(YEAR),2025) \
 		--top-k $(or $(TOP_K),5)
 
-eval: ## Run RAGAS evaluation over the goldset (YEAR=2025, LIMIT=0)
+eval: ## Run RAGAS evaluation over the goldset (YEAR=2025, LIMIT=0, OUTPUT=)
 	@cd backend && $(UV) run python -m ingest.cli eval \
 		--year $(or $(YEAR),2025) \
 		$(if $(LIMIT),--limit $(LIMIT)) \
-		$(if $(OUTPUT),--output $(OUTPUT))
+		$(if $(OUTPUT),--output $(OUTPUT)) \
+		$(if $(LABEL),--label $(LABEL))
+
+eval.snapshot: ## Run eval + save timestamped snapshot (LABEL=hierarchical YEAR=2025)
+	@mkdir -p backend/evaluation/snapshots
+	@cd backend && \
+	 TS=$$(date +%Y%m%dT%H%M%S) && \
+	 _LABEL=$(or $(LABEL),hierarchical) && \
+	 SNAP="evaluation/snapshots/$${TS}_$${_LABEL}.json" && \
+	 $(UV) run python -m ingest.cli eval \
+		--year $(or $(YEAR),2025) \
+		$(if $(LIMIT),--limit $(LIMIT)) \
+		--label $${_LABEL} \
+		--output "$${SNAP}" && \
+	 cp "$${SNAP}" "evaluation/snapshots/latest_$${_LABEL}.json" && \
+	 printf "$(GREEN)Snapshot gespeichert:$(NC) backend/$${SNAP}\n" && \
+	 printf "$(GREEN)Latest-Link:$(NC) backend/evaluation/snapshots/latest_$${_LABEL}.json\n"
+
+eval.ablation: ## Run eval twice (AutoMerge an + aus) + Vergleich ausgeben (YEAR=2025)
+	@mkdir -p backend/evaluation/snapshots
+	@cd backend && \
+	 TS=$$(date +%Y%m%dT%H%M%S) && \
+	 SNAP_H="evaluation/snapshots/$${TS}_hierarchical.json" && \
+	 SNAP_N="evaluation/snapshots/$${TS}_no-automerge.json" && \
+	 printf "$(BOLD)1/2 — AutoMerge an (hierarchical)$(NC)\n" && \
+	 $(UV) run python -m ingest.cli eval \
+		--year $(or $(YEAR),2025) \
+		$(if $(LIMIT),--limit $(LIMIT)) \
+		--label hierarchical \
+		--output "$${SNAP_H}" && \
+	 cp "$${SNAP_H}" "evaluation/snapshots/latest_hierarchical.json" && \
+	 printf "$(BOLD)2/2 — AutoMerge aus (no-automerge)$(NC)\n" && \
+	 $(UV) run python -m ingest.cli eval \
+		--year $(or $(YEAR),2025) \
+		$(if $(LIMIT),--limit $(LIMIT)) \
+		--no-automerge \
+		--label no-automerge \
+		--output "$${SNAP_N}" && \
+	 cp "$${SNAP_N}" "evaluation/snapshots/latest_no-automerge.json" && \
+	 printf "\n$(BOLD)Vergleich:$(NC)\n" && \
+	 $(UV) run python -m ingest.cli eval-compare "$${SNAP_H}" "$${SNAP_N}"
+
+eval.compare: ## Vergleiche zwei Snapshots — A=path/a.json B=path/b.json
+	@cd backend && $(UV) run python -m ingest.cli eval-compare \
+		"$(or $(A),$(error A is required — e.g. make eval.compare A=evaluation/snapshots/a.json B=evaluation/snapshots/b.json))" \
+		"$(or $(B),$(error B is required))"
 
 # ---- Quality ----------------------------------------------------------------
 

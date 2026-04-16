@@ -74,9 +74,11 @@ class HybridRetriever(BaseRetriever):
         chroma_collection: chromadb.Collection,
         year: int,
         chroma_path: str = "",
+        automerge: bool = True,
     ) -> None:
         self._year = year
         self._chroma_collection = chroma_collection
+        self._automerge = automerge
 
         # Dense retriever with year metadata filter
         self._dense = index.as_retriever(
@@ -150,7 +152,8 @@ class HybridRetriever(BaseRetriever):
         merged = self._rerank(query_bundle.query_str, merged)
 
         # 5. AutoMerge: child nodes → parent when ≥ MERGE_THRESHOLD children matched
-        merged = self._auto_merge(merged)
+        if self._automerge:
+            merged = self._auto_merge(merged)
 
         # 6. Reference resolution
         merged = resolve_references(merged, self._chroma_collection, self._year)

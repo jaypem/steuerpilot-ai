@@ -35,6 +35,7 @@ async def _run_question(
     question: str,
     chroma_path: str,
     tax_year: int,
+    automerge: bool = True,
 ) -> dict[str, Any]:
     """
     Run a single question through the retrieval pipeline.
@@ -71,14 +72,15 @@ async def _run_question(
     answer = "".join(answer_parts)
 
     # Also retrieve contexts directly (for RAGAS context metrics)
-    contexts = await _get_contexts(question, chroma_path, tax_year)
+    contexts = await _get_contexts(question, chroma_path, tax_year, automerge=automerge)
 
     return {"answer": answer, "contexts": contexts}
 
 
-async def _get_contexts(query: str, chroma_path: str, year: int) -> list[str]:
+async def _get_contexts(
+    query: str, chroma_path: str, year: int, automerge: bool = True
+) -> list[str]:
     """Run the hybrid retriever and return text of top-N nodes."""
-    from app.config import get_settings
     from app.index import get_index, has_indexed_data
 
     if not has_indexed_data(chroma_path):
@@ -93,7 +95,13 @@ async def _get_contexts(query: str, chroma_path: str, year: int) -> list[str]:
         client = chromadb.PersistentClient(path=chroma_path)
         collection = client.get_or_create_collection(COLLECTION_NAME)
         index = get_index(chroma_path)
-        retriever = HybridRetriever(index=index, chroma_collection=collection, year=year)
+        retriever = HybridRetriever(
+            index=index,
+            chroma_collection=collection,
+            year=year,
+            chroma_path=chroma_path,
+            automerge=automerge,
+        )
         nodes = retriever.retrieve(QueryBundle(query_str=query))
         return [n.node.get_content() for n in nodes]
     except Exception as exc:
@@ -180,7 +188,9 @@ def run_evaluation(
     output_path: str | None = None,
     limit: int | None = None,
     api_key: str = "",
-) -> None:
+    automerge: bool = True,
+    label: str = "",
+) -> dict[str, float]:
     """
     Full evaluation run: goldset → RAG pipeline → RAGAS metrics → Rich table.
 
@@ -190,14 +200,27 @@ def run_evaluation(
         output_path:  If set, save the full results dict as JSON to this path.
         limit:        Evaluate only the first N questions (useful for quick checks).
         api_key:      Anthropic API key (falls back to ANTHROPIC_API_KEY env var).
+        automerge:    If False, skip AutoMerge step in HybridRetriever (ablation).
+        label:        Human-readable label stored in the snapshot JSON (e.g. "hierarchical").
+
+    Returns:
+        Dict of metric name → float score.
     """
+    import datetime
     import os
     from rich.console import Console
     from rich.table import Table
     from rich.progress import Progress, SpinnerColumn, TextColumn
 
     console = Console()
-    api_key = api_key or os.environ.get("ANTHROPIC_API_KEY", "")
+
+    if not api_key:
+        # pydantic-settings reads .env automatically (cwd must be backend/)
+        from app.config import get_settings
+        api_key = get_settings().anthropic_api_key or os.environ.get("ANTHROPIC_API_KEY", "")
+
+    run_label = label or ("hierarchical" if automerge else "no-automerge")
+    run_ts = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     if not api_key:
         console.print("[red]ANTHROPIC_API_KEY nicht gesetzt — Eval abgebrochen.[/red]")
@@ -209,7 +232,11 @@ def run_evaluation(
     if limit:
         questions_data = questions_data[:limit]
 
-    console.rule(f"[bold]steuerpilot-ai RAGAS-Eval — {len(questions_data)} Fragen[/bold]")
+    automerge_str = "AutoMerge=an" if automerge else "AutoMerge=aus"
+    console.rule(
+        f"[bold]steuerpilot-ai RAGAS-Eval — {len(questions_data)} Fragen "
+        f"[dim]({run_label}, {automerge_str})[/dim][/bold]"
+    )
 
     # ── Run pipeline for each question ────────────────────────────────────────
     questions: list[str] = []
@@ -224,7 +251,9 @@ def run_evaluation(
     ) as progress:
         for item in questions_data:
             task = progress.add_task(f"Frage {item['id']}: {item['question'][:50]}…")
-            result = asyncio.run(_run_question(item["question"], chroma_path, tax_year))
+            result = asyncio.run(
+                _run_question(item["question"], chroma_path, tax_year, automerge=automerge)
+            )
             progress.update(task, completed=True)
 
             questions.append(item["question"])
@@ -278,12 +307,16 @@ def run_evaluation(
     console.print(f"\n[dim]Laufzeit: {elapsed:.1f}s für {len(questions)} Fragen[/dim]")
 
     # ── Optional JSON output ──────────────────────────────────────────────────
+    float_scores = {k: v for k, v in scores.items() if isinstance(v, float)}
     if output_path:
         full_result = {
+            "label": run_label,
+            "automerge": automerge,
+            "timestamp": run_ts,
             "tax_year": tax_year,
             "n_questions": len(questions),
             "elapsed_seconds": round(elapsed, 1),
-            "scores": {k: v for k, v in scores.items() if isinstance(v, float)},
+            "scores": float_scores,
             "details": [
                 {
                     "id": item["id"],
@@ -297,8 +330,81 @@ def run_evaluation(
                 )
             ],
         }
-        Path(output_path).write_text(
+        out = Path(output_path)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(
             json.dumps(full_result, ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
         console.print(f"[green]Ergebnisse gespeichert:[/green] {output_path}")
+
+    return float_scores
+
+
+# ─── Snapshot comparison ──────────────────────────────────────────────────────
+
+
+_METRIC_LABELS = {
+    "context_recall": "Context Recall",
+    "faithfulness": "Faithfulness",
+    "answer_relevancy": "Answer Relevancy",
+    "factual_correctness": "Factual Correctness",
+    "llm_context_recall": "LLM Context Recall",
+    "response_relevancy": "Response Relevancy",
+}
+
+
+def compare_snapshots(path_a: str, path_b: str) -> None:
+    """
+    Load two eval snapshot JSONs and print a side-by-side metric comparison.
+
+    The first snapshot is treated as the reference (column A).
+    Delta = A − B; green when A is better, red when A is worse.
+    """
+    from rich.console import Console
+    from rich.table import Table
+
+    console = Console()
+
+    data_a = json.loads(Path(path_a).read_text(encoding="utf-8"))
+    data_b = json.loads(Path(path_b).read_text(encoding="utf-8"))
+
+    label_a = data_a.get("label", Path(path_a).stem)
+    label_b = data_b.get("label", Path(path_b).stem)
+    scores_a: dict[str, float] = data_a.get("scores", {})
+    scores_b: dict[str, float] = data_b.get("scores", {})
+
+    all_keys = sorted(set(scores_a) | set(scores_b))
+
+    table = Table(
+        title=f"Ablation: [cyan]{label_a}[/cyan] vs. [cyan]{label_b}[/cyan]",
+        show_header=True,
+        header_style="bold magenta",
+    )
+    table.add_column("Metrik", style="cyan")
+    table.add_column(label_a, justify="right")
+    table.add_column(label_b, justify="right")
+    table.add_column("Δ (A − B)", justify="right")
+
+    for key in all_keys:
+        val_a = scores_a.get(key)
+        val_b = scores_b.get(key)
+        if not isinstance(val_a, float) or not isinstance(val_b, float):
+            continue
+        delta = val_a - val_b
+        if delta >= 0.01:
+            delta_str = f"[green]+{delta:.3f}[/green]"
+        elif delta <= -0.01:
+            delta_str = f"[red]{delta:.3f}[/red]"
+        else:
+            delta_str = f"[dim]{delta:+.3f}[/dim]"
+        metric_label = _METRIC_LABELS.get(key, key)
+        table.add_row(metric_label, f"{val_a:.3f}", f"{val_b:.3f}", delta_str)
+
+    console.print(table)
+    console.print(
+        f"\n[dim]{label_a}: {data_a.get('n_questions', '?')} Fragen, "
+        f"{data_a.get('elapsed_seconds', '?')}s | "
+        f"{label_b}: {data_b.get('n_questions', '?')} Fragen, "
+        f"{data_b.get('elapsed_seconds', '?')}s[/dim]"
+    )

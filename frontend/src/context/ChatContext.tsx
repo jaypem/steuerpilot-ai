@@ -146,16 +146,16 @@ function MockProvider({ children }: { children: React.ReactNode }) {
     );
   }, []);
 
-  // Keep active session stats in sync
-  useMemo(() => {
-    setSessions((prev) =>
-      prev.map((s) =>
+  // Derive active session stats without storing back into state
+  const sessionsWithStats = useMemo(
+    () =>
+      sessions.map((s) =>
         s.id === activeSessionId
           ? { ...s, messageCount: messages.length, totalSaving }
           : s,
       ),
-    );
-  }, [messages.length, totalSaving, activeSessionId]);
+    [sessions, activeSessionId, messages.length, totalSaving],
+  );
 
   return (
     <ChatContext.Provider
@@ -165,7 +165,7 @@ function MockProvider({ children }: { children: React.ReactNode }) {
         submitMessage,
         errorMessage,
         clearError,
-        sessions,
+        sessions: sessionsWithStats,
         activeSessionId,
         selectSession,
         newSession,

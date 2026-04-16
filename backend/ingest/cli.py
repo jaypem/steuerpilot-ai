@@ -289,6 +289,8 @@ def eval(
     chroma_path: str = typer.Option("chroma_db", help="Pfad zur Chroma-Datenbank"),
     output: str = typer.Option("", help="Optionaler Pfad für JSON-Ausgabe"),
     limit: int = typer.Option(0, help="Nur N Fragen auswerten (0 = alle)"),
+    no_automerge: bool = typer.Option(False, "--no-automerge", help="AutoMerge deaktivieren (Ablation)"),
+    label: str = typer.Option("", help="Label für den Snapshot (z.B. 'hierarchical')"),
     verbose: bool = typer.Option(False, "--verbose", "-v"),
 ) -> None:
     """RAGAS-Evaluation über das Goldset (20 Frage-Antwort-Paare) ausführen.
@@ -311,7 +313,25 @@ def eval(
         tax_year=year,
         output_path=output or None,
         limit=limit or None,
+        automerge=not no_automerge,
+        label=label,
     )
+
+
+# ─── eval-compare ──────────────────────────────────────────────────────────────
+
+
+@app.command(name="eval-compare")
+def eval_compare(
+    snapshot_a: str = typer.Argument(..., help="Pfad zu Snapshot A (Referenz)"),
+    snapshot_b: str = typer.Argument(..., help="Pfad zu Snapshot B (Vergleich)"),
+) -> None:
+    """Zwei Eval-Snapshots (JSON) nebeneinander vergleichen."""
+    import os
+    os.chdir(_BACKEND_DIR)
+
+    from evaluation.eval import compare_snapshots
+    compare_snapshots(snapshot_a, snapshot_b)
 
 
 # ─── Entry point ──────────────────────────────────────────────────────────────

@@ -161,7 +161,12 @@
 - [x] **16.2** Zwei-Ebenen-Hierarchie: Paragraf (Parent) → Absatz (Child) mit `NodeRelationship.PARENT/CHILD`; `SimpleDocumentStore` für späteres AutoMerging persistiert
 - [x] **16.4** `section`-Metadatum im SourceChunk präzisieren (`Abs. 1`, `Abs. 4a` aus `(N)`-Prefix extrahiert)
 - [x] **16.3** AutoMergingRetriever einsetzen: Child-Treffer zu Parent-Node zusammenführen wenn ≥ N Kinder eines Paragrafen gematcht werden (`MERGE_THRESHOLD=3`)
-- [ ] **16.5** Goldset-Evaluation nach Umstellung (Baseline vs. Hierarchie vergleichen)
+- [~] **16.5** Goldset-Evaluation nach Umstellung (Baseline vs. Hierarchie vergleichen)
+  - [x] `eval.snapshot`-Target + Timestamp-JSON + `.gitignore` für Snapshots
+  - [x] `automerge`-Flag in `HybridRetriever`, `--no-automerge` in CLI
+  - [x] `compare_snapshots()` + `eval-compare`-CLI-Command
+  - [x] `eval.ablation`-Target (beide Modi sequenziell + Vergleichstabelle)
+  - [ ] Ablation tatsächlich ausführen und Ergebnisse dokumentieren
 
 ---
 

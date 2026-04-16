@@ -225,3 +225,6 @@ backend/models/
 
 # Rohe Rechtsdokumente (werden zur Laufzeit heruntergeladen)
 data/raw/
+
+# Eval-Snapshots (lokale Runs, nicht in Git)
+backend/evaluation/snapshots/*.json

@@ -9,10 +9,11 @@ function AnimatedNumber({ value }: { value: number }) {
 
   useEffect(() => {
     if (value !== prevRef.current) {
-      setHighlighted(true);
       prevRef.current = value;
-      const t = setTimeout(() => setHighlighted(false), 800);
-      return () => clearTimeout(t);
+      // Defer both state updates so they are not synchronous within the effect
+      const onId = setTimeout(() => setHighlighted(true), 0);
+      const offId = setTimeout(() => setHighlighted(false), 800);
+      return () => { clearTimeout(onId); clearTimeout(offId); };
     }
   }, [value]);
 

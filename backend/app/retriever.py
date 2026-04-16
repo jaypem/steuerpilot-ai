@@ -1,12 +1,14 @@
 """
-Hybrid retriever: Dense (Chroma) + BM25 + Cross-Encoder re-ranking.
+Hybrid retriever: Dense (Chroma) + BM25 + Cross-Encoder re-ranking + AutoMerge.
 
 Pipeline per query:
   1. Dense retrieval via Chroma (multilingual-e5-large), top-30, year-filter
   2. BM25 retrieval over in-memory corpus for the same year, top-20
   3. Deduplicate by node_id
   4. Cross-encoder re-ranking (ms-marco-MiniLM-L-6-v2), top-8
-  5. Reference resolution (app/reference_resolver.py)
+  5. AutoMerge: child nodes → parent paragraph when ≥ MERGE_THRESHOLD
+     children of the same § appear in the result set
+  6. Reference resolution (app/reference_resolver.py)
 """
 import logging
 from functools import lru_cache
@@ -14,20 +16,23 @@ from typing import TYPE_CHECKING
 
 import chromadb
 from llama_index.core.retrievers import BaseRetriever
-from llama_index.core.schema import NodeWithScore, QueryBundle, TextNode
+from llama_index.core.schema import NodeRelationship, NodeWithScore, QueryBundle, TextNode
+from llama_index.core.storage.docstore import SimpleDocumentStore
 from llama_index.core.vector_stores import MetadataFilter, MetadataFilters
 from llama_index.retrievers.bm25 import BM25Retriever
 
 from app.reference_resolver import resolve_references
+from ingest.store import docstore_path
 
 if TYPE_CHECKING:
     from llama_index.core import VectorStoreIndex
 
 logger = logging.getLogger(__name__)
 
-DENSE_TOP_K = 30   # mehr Kandidaten für den Cross-Encoder → besserer Recall
-BM25_TOP_K = 20
-RERANK_TOP_N = 8   # mehr Kontext für Claude bei komplexen Mehranfragen-Fragen
+DENSE_TOP_K    = 30   # mehr Kandidaten für den Cross-Encoder → besserer Recall
+BM25_TOP_K     = 20
+RERANK_TOP_N   = 8    # nach Re-Ranking; AutoMerge kann die Zahl weiter reduzieren
+MERGE_THRESHOLD = 3   # min. Child-Treffer eines § um zum Parent zusammenzuführen
 
 
 @lru_cache
@@ -59,8 +64,8 @@ def _nodes_from_chroma(
 
 class HybridRetriever(BaseRetriever):
     """
-    Dense + BM25 hybrid retriever with cross-encoder re-ranking and
-    automatic §-reference resolution.
+    Dense + BM25 hybrid retriever with cross-encoder re-ranking, AutoMerge,
+    and automatic §-reference resolution.
     """
 
     def __init__(
@@ -68,6 +73,7 @@ class HybridRetriever(BaseRetriever):
         index: "VectorStoreIndex",
         chroma_collection: chromadb.Collection,
         year: int,
+        chroma_path: str = "",
     ) -> None:
         self._year = year
         self._chroma_collection = chroma_collection
@@ -90,6 +96,27 @@ class HybridRetriever(BaseRetriever):
         else:
             logger.warning("No corpus nodes for year %d — BM25 disabled.", year)
             self._bm25 = None
+
+        # SimpleDocumentStore for AutoMerge parent lookup
+        self._docstore: SimpleDocumentStore | None = None
+        if chroma_path:
+            ds_path = docstore_path(chroma_path)
+            if ds_path.exists():
+                try:
+                    self._docstore = SimpleDocumentStore.from_persist_path(str(ds_path))
+                    logger.info(
+                        "AutoMerge: docstore loaded (%d nodes) from %s",
+                        len(self._docstore.docs),
+                        ds_path,
+                    )
+                except Exception as exc:
+                    logger.warning("AutoMerge: could not load docstore: %s", exc)
+            else:
+                logger.warning(
+                    "AutoMerge: no docstore found at %s — re-run 'steuerpilot ingest' "
+                    "to enable parent merging.",
+                    ds_path,
+                )
 
         super().__init__()
 
@@ -122,13 +149,15 @@ class HybridRetriever(BaseRetriever):
         # 4. Cross-encoder re-ranking
         merged = self._rerank(query_bundle.query_str, merged)
 
-        # 5. Reference resolution
+        # 5. AutoMerge: child nodes → parent when ≥ MERGE_THRESHOLD children matched
+        merged = self._auto_merge(merged)
+
+        # 6. Reference resolution
         merged = resolve_references(merged, self._chroma_collection, self._year)
 
         return merged
 
     async def _aretrieve(self, query_bundle: QueryBundle) -> list[NodeWithScore]:
-        # LlamaIndex falls back to sync _retrieve when async is not overridden
         return self._retrieve(query_bundle)
 
     # ── Internal helpers ──────────────────────────────────────────────────────
@@ -147,3 +176,49 @@ class HybridRetriever(BaseRetriever):
         except Exception as exc:
             logger.warning("Re-ranking failed (%s) — using dense order.", exc)
             return nodes[:RERANK_TOP_N]
+
+    def _auto_merge(self, nodes: list[NodeWithScore]) -> list[NodeWithScore]:
+        """
+        Replace groups of ≥ MERGE_THRESHOLD child nodes that share the same parent
+        with the parent node itself. Score of merged parent = max child score.
+
+        Nodes without a PARENT relationship (e.g. LStR Randnummern, already-merged
+        parents, or pre-hierarchy index entries) pass through unchanged.
+        """
+        if not self._docstore:
+            return nodes
+
+        # Partition into children-by-parent and pass-through nodes
+        by_parent: dict[str, list[NodeWithScore]] = {}
+        pass_through: list[NodeWithScore] = []
+
+        for n in nodes:
+            parent_rel = n.node.relationships.get(NodeRelationship.PARENT)
+            if parent_rel:
+                by_parent.setdefault(parent_rel.node_id, []).append(n)
+            else:
+                pass_through.append(n)
+
+        result: list[NodeWithScore] = list(pass_through)
+
+        for parent_id, children in by_parent.items():
+            if len(children) >= MERGE_THRESHOLD:
+                try:
+                    parent_doc = self._docstore.get_document(parent_id)
+                    if parent_doc is not None:
+                        max_score = max(c.score or 0.0 for c in children)
+                        result.append(NodeWithScore(node=parent_doc, score=max_score))
+                        logger.debug(
+                            "AutoMerge: %d children of %s → parent (score %.3f)",
+                            len(children), parent_id, max_score,
+                        )
+                        continue
+                except Exception as exc:
+                    logger.warning(
+                        "AutoMerge: could not load parent %s: %s", parent_id, exc
+                    )
+            # Below threshold or load failed — keep children
+            result.extend(children)
+
+        result.sort(key=lambda n: n.score or 0.0, reverse=True)
+        return result

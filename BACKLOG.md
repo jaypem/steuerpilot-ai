@@ -159,8 +159,8 @@
 - [x] **16.1** XML-Parser erweitern: Absätze (`Abs. X`) als separate Child-Nodes extrahieren (Bug fix: `<enbez>`/`<titel>` statt falscher Tags; `ParsedLaw` Datenklasse; 229 Paragrafen → 1263 Nodes für EStG)
 - [x] **16.2** Zwei-Ebenen-Hierarchie: Paragraf (Parent) → Absatz (Child) mit `NodeRelationship.PARENT/CHILD`; `SimpleDocumentStore` für späteres AutoMerging persistiert
 - [x] **16.4** `section`-Metadatum im SourceChunk präzisieren (`Abs. 1`, `Abs. 4a` aus `(N)`-Prefix extrahiert)
-- [ ] **16.3** AutoMergingRetriever einsetzen: Child-Treffer zu Parent-Node zusammenführen wenn ≥ N Kinder eines Paragrafen gematcht werden
-- [ ] **16.5** Tests und Goldset-Evaluation nach Umstellung
+- [x] **16.3** AutoMergingRetriever einsetzen: Child-Treffer zu Parent-Node zusammenführen wenn ≥ N Kinder eines Paragrafen gematcht werden (`MERGE_THRESHOLD=3`)
+- [ ] **16.5** Goldset-Evaluation nach Umstellung (Baseline vs. Hierarchie vergleichen)
 
 ---
 

@@ -43,7 +43,7 @@ def get_chroma_client(chroma_path: str) -> chromadb.PersistentClient:
     return chromadb.PersistentClient(path=chroma_path)
 
 
-def _docstore_path(chroma_path: str) -> Path:
+def docstore_path(chroma_path: str) -> Path:
     """Sibling file to the Chroma directory: chroma_db → chroma_db_docstore.json"""
     p = Path(chroma_path)
     return p.parent / (p.name + _DOCSTORE_SUFFIX)
@@ -93,7 +93,7 @@ def store_documents(
     logger.info("Stored %d leaf nodes in Chroma for %s %d", len(leaf_nodes), law, year)
 
     # ── SimpleDocumentStore: persist all nodes (parents + children) ────────────
-    ds_path = _docstore_path(chroma_path)
+    ds_path = docstore_path(chroma_path)
 
     if ds_path.exists():
         docstore = SimpleDocumentStore.from_persist_path(str(ds_path))

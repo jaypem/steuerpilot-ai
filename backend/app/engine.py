@@ -188,6 +188,7 @@ def _build_engine(
             index=index,
             chroma_collection=collection,
             year=tax_year,
+            chroma_path=settings.chroma_path,
         )
         logger.info("Using ContextChatEngine (RAG) for year %d", tax_year)
         return ContextChatEngine.from_defaults(

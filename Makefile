@@ -63,31 +63,31 @@ local.web: ## Run the Next.js dev server (http://localhost:3000)
 	@cd frontend && $(PNPM) dev
 
 local.ingest: ## Build the core knowledge base — EStG, AO, UStG (YEAR=2025)
-	@cd backend && $(UV) run steuerpilot ingest --year $(or $(YEAR),2025)
+	@cd backend && $(UV) run python -m ingest.cli ingest --year $(or $(YEAR),2025)
 
 local.ingest-full: ## Build the full knowledge base — all 6 laws (YEAR=2025)
-	@cd backend && $(UV) run steuerpilot ingest \
+	@cd backend && $(UV) run python -m ingest.cli ingest \
 		--laws EStG EStDV AO UStG SolzG GewStG \
 		--year $(or $(YEAR),2025)
 
 local.ingest-lstr: ## Download and ingest LStR PDF (YEAR=2023)
-	@cd backend && $(UV) run steuerpilot ingest-lstr --year $(or $(YEAR),2023)
+	@cd backend && $(UV) run python -m ingest.cli ingest-lstr --year $(or $(YEAR),2023)
 
 check-sources: ## HTTP-HEAD check all external sources (exit 1 on failure)
-	@cd backend && $(UV) run steuerpilot check-sources
+	@cd backend && $(UV) run python -m ingest.cli check-sources
 
 # ---- Knowledge-Base ---------------------------------------------------------
 
 .PHONY: search eval
 
 search: ## Search the vector index — QUERY="..." YEAR=2025 TOP_K=5
-	@cd backend && $(UV) run steuerpilot search \
+	@cd backend && $(UV) run python -m ingest.cli search \
 		"$(or $(QUERY),$(error QUERY is required — e.g. make search QUERY="Homeoffice"))" \
 		--year $(or $(YEAR),2025) \
 		--top-k $(or $(TOP_K),5)
 
 eval: ## Run RAGAS evaluation over the goldset (YEAR=2025, LIMIT=0)
-	@cd backend && $(UV) run steuerpilot eval \
+	@cd backend && $(UV) run python -m ingest.cli eval \
 		--year $(or $(YEAR),2025) \
 		$(if $(LIMIT),--limit $(LIMIT)) \
 		$(if $(OUTPUT),--output $(OUTPUT))

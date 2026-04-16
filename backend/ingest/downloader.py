@@ -13,9 +13,14 @@ logger = logging.getLogger(__name__)
 
 # Canonical URLs for supported laws
 LAW_URLS: dict[str, str] = {
-    "EStG": "https://www.gesetze-im-internet.de/estg/xml.zip",
-    "AO":   "https://www.gesetze-im-internet.de/ao_1977/xml.zip",
-    "UStG": "https://www.gesetze-im-internet.de/ustg_1980/xml.zip",
+    # Prio 1 — Einkommensteuer-Kerngesetze
+    "EStG":  "https://www.gesetze-im-internet.de/estg/xml.zip",
+    "EStDV": "https://www.gesetze-im-internet.de/estdv_1955/xml.zip",
+    "AO":    "https://www.gesetze-im-internet.de/ao_1977/xml.zip",
+    "UStG":  "https://www.gesetze-im-internet.de/ustg_1980/xml.zip",
+    # Prio 2 — Ergänzende Steuergesetze
+    "SolzG":  "https://www.gesetze-im-internet.de/solzg_1995/xml.zip",
+    "GewStG": "https://www.gesetze-im-internet.de/gewstg/xml.zip",
 }
 
 

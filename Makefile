@@ -62,8 +62,13 @@ local.api: ## Run the FastAPI backend (http://localhost:8000)
 local.web: ## Run the Next.js dev server (http://localhost:3000)
 	@cd frontend && $(PNPM) dev
 
-local.ingest: ## Build the knowledge base (YEAR=2025)
+local.ingest: ## Build the core knowledge base — EStG, AO, UStG (YEAR=2025)
 	@cd backend && $(UV) run steuerpilot ingest --year $(or $(YEAR),2025)
+
+local.ingest-full: ## Build the full knowledge base — all 6 laws (YEAR=2025)
+	@cd backend && $(UV) run steuerpilot ingest \
+		--laws EStG EStDV AO UStG SolzG GewStG \
+		--year $(or $(YEAR),2025)
 
 # ---- Quality ----------------------------------------------------------------
 

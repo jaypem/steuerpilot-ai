@@ -35,10 +35,34 @@ uv run uvicorn app.main:app --reload   # http://localhost:8000
 
 ### Wissensbasis aufbauen
 
+**Kern (EStG, AO, UStG):**
+
 ```bash
 cd backend
 uv run steuerpilot ingest --year 2025
+# oder via Make:
+make local.ingest
 ```
+
+**Vollständig (+ EStDV, SolzG, GewStG):**
+
+```bash
+cd backend
+uv run steuerpilot ingest --laws EStG EStDV AO UStG SolzG GewStG --year 2025
+# oder via Make:
+make local.ingest-full
+```
+
+Unterstützte Gesetze:
+
+| Kürzel | Gesetz | Relevanz |
+| --- | --- | --- |
+| `EStG` | Einkommensteuergesetz | Kerngesetz — Werbungskosten, Sonderausgaben, AfA |
+| `EStDV` | EStG-Durchführungsverordnung | Konkretisierungen zu EStG-Paragrafen, Pauschalen |
+| `AO` | Abgabenordnung | Verfahrensrecht, Einspruch, Fristen |
+| `UStG` | Umsatzsteuergesetz | Vorsteuerabzug für Freiberufler |
+| `SolzG` | Solidaritätszuschlaggesetz | Gesamtsteuerbelastung |
+| `GewStG` | Gewerbesteuergesetz | Relevant für Gewerbetreibende und Freiberufler |
 
 ## Umgebungsvariablen
 

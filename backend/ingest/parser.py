@@ -23,9 +23,12 @@ logger = logging.getLogger(__name__)
 
 # URL template for gesetze-im-internet.de permalinks (for source chips)
 _URL_BASES: dict[str, str] = {
-    "EStG": "https://www.gesetze-im-internet.de/estg/",
-    "AO":   "https://www.gesetze-im-internet.de/ao_1977/",
-    "UStG": "https://www.gesetze-im-internet.de/ustg_1980/",
+    "EStG":   "https://www.gesetze-im-internet.de/estg/",
+    "EStDV":  "https://www.gesetze-im-internet.de/estdv_1955/",
+    "AO":     "https://www.gesetze-im-internet.de/ao_1977/",
+    "UStG":   "https://www.gesetze-im-internet.de/ustg_1980/",
+    "SolzG":  "https://www.gesetze-im-internet.de/solzg_1995/",
+    "GewStG": "https://www.gesetze-im-internet.de/gewstg/",
 }
 
 # Maps "§ 4" → "__4.html" (simplified — actual filenames vary)

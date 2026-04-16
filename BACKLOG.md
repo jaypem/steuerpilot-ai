@@ -132,6 +132,7 @@
 
 - [x] **13.1** Scan-Schemas: `ScanRequest`, `ScanResult` in `app/models/scan.py`
 - [x] **13.2** `POST /api/scan` in `app/routers/scan.py` mit RAG + Claude
+- [x] **13.3** Scan-UI im Frontend: `/scan`-Seite mit Formular (Ausgabenpositionen + Kontext), Ergebnis-Cards mit Absetzbarkeit/Risiko/Ersparnis/Quellen; Nav-Link im Header
 
 ---
 

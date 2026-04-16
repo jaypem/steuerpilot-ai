@@ -1,5 +1,6 @@
 import type { Message, RiskBadge, Source } from "@/types/chat";
 import type { Session } from "@/types/session";
+import type { ScanResult } from "@/types/scan";
 import { parseSSEStream } from "./sseParser";
 
 const API_URL =
@@ -125,4 +126,46 @@ export async function deleteSession(sessionId: string): Promise<void> {
     method: "DELETE",
   });
   if (!res.ok && res.status !== 404) throw new Error(`HTTP ${res.status}`);
+}
+
+export async function scanExpenses(
+  expenses: Array<{ description: string; amount: number }>,
+  context?: string,
+  taxYear = 2025,
+): Promise<ScanResult> {
+  const res = await fetch(`${API_URL}/api/scan`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      expenses,
+      context: context?.trim() || null,
+      tax_year: taxYear,
+    }),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => res.statusText);
+    throw new Error(`Scan fehlgeschlagen (${res.status}): ${text}`);
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const data: any = await res.json();
+  return {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    items: data.items.map((item: any) => ({
+      description: item.description,
+      amount: item.amount,
+      deductible: item.deductible,
+      deductibleAmount: item.deductible_amount,
+      savingEstimate: item.saving_estimate,
+      risk: item.risk,
+      explanation: item.explanation,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      sources: (item.sources ?? []).map((s: any) => ({
+        law: s.law,
+        paragraph: s.paragraph,
+        section: s.section ?? "",
+      })),
+    })),
+    totalSavingEstimate: data.total_saving_estimate,
+    missingPositions: data.missing_positions ?? [],
+  };
 }

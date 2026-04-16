@@ -1,3 +1,8 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
 interface HeaderProps {
   onToggleSessionSidebar: () => void;
   onToggleSparSidebar: () => void;
@@ -7,6 +12,8 @@ export default function Header({
   onToggleSessionSidebar,
   onToggleSparSidebar,
 }: HeaderProps) {
+  const pathname = usePathname();
+
   return (
     <header className="flex h-12 shrink-0 items-center justify-between border-b border-border bg-surface-raised px-4">
       {/* Mobile: Session-Sidebar-Toggle */}
@@ -22,14 +29,40 @@ export default function Header({
         </svg>
       </button>
 
-      {/* Logo */}
-      <div className="flex items-center gap-2">
-        <span className="font-mono text-sm font-semibold tracking-tight text-foreground">
-          steuerpilot
-        </span>
-        <span className="rounded-full bg-accent-subtle px-2 py-0.5 font-mono text-xs font-medium text-accent">
-          2025
-        </span>
+      {/* Logo + Nav */}
+      <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-sm font-semibold tracking-tight text-foreground">
+            steuerpilot
+          </span>
+          <span className="rounded-full bg-accent-subtle px-2 py-0.5 font-mono text-xs font-medium text-accent">
+            2025
+          </span>
+        </div>
+
+        {/* Desktop nav */}
+        <nav className="hidden items-center gap-1 lg:flex" aria-label="Hauptnavigation">
+          <Link
+            href="/"
+            className={`rounded-md px-2.5 py-1 text-xs transition-colors ${
+              pathname === "/"
+                ? "bg-border text-foreground"
+                : "text-muted hover:bg-border hover:text-foreground"
+            }`}
+          >
+            Chat
+          </Link>
+          <Link
+            href="/scan"
+            className={`rounded-md px-2.5 py-1 text-xs transition-colors ${
+              pathname === "/scan"
+                ? "bg-border text-foreground"
+                : "text-muted hover:bg-border hover:text-foreground"
+            }`}
+          >
+            Ausgaben-Scan
+          </Link>
+        </nav>
       </div>
 
       {/* Mobile: Spar-Sidebar-Toggle */}
@@ -45,9 +78,6 @@ export default function Header({
           />
         </svg>
       </button>
-
-      {/* Desktop: Platzhalter rechts für symmetrisches Layout */}
-      <div className="hidden w-8 lg:block" aria-hidden />
     </header>
   );
 }

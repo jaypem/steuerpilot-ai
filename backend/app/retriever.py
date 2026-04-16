@@ -2,10 +2,10 @@
 Hybrid retriever: Dense (Chroma) + BM25 + Cross-Encoder re-ranking.
 
 Pipeline per query:
-  1. Dense retrieval via Chroma (multilingual-e5-large), top-20, year-filter
+  1. Dense retrieval via Chroma (multilingual-e5-large), top-30, year-filter
   2. BM25 retrieval over in-memory corpus for the same year, top-20
   3. Deduplicate by node_id
-  4. Cross-encoder re-ranking (ms-marco-MiniLM-L-6-v2), top-5
+  4. Cross-encoder re-ranking (ms-marco-MiniLM-L-6-v2), top-8
   5. Reference resolution (app/reference_resolver.py)
 """
 import logging
@@ -25,9 +25,9 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-DENSE_TOP_K = 20
+DENSE_TOP_K = 30   # mehr Kandidaten für den Cross-Encoder → besserer Recall
 BM25_TOP_K = 20
-RERANK_TOP_N = 5
+RERANK_TOP_N = 8   # mehr Kontext für Claude bei komplexen Mehranfragen-Fragen
 
 
 @lru_cache

@@ -143,6 +143,27 @@
 
 ---
 
+## Phase 15: Wissensbasis erweitern — zusätzliche Gesetze
+
+- [ ] **15.1** EStDV (Einkommensteuer-Durchführungsverordnung) in `LAW_URLS` ergänzen und ingestieren (`estdv_1955/xml.zip`)
+- [ ] **15.2** SolzG (Solidaritätszuschlaggesetz) in `LAW_URLS` ergänzen und ingestieren (`solzg_1995/xml.zip`)
+- [ ] **15.3** GewStG (Gewerbesteuergesetz) in `LAW_URLS` ergänzen und ingestieren (`gewstg/xml.zip`)
+- [ ] **15.4** LStR (Lohnsteuer-Richtlinien) — eigener Downloader/Scraper für bundesfinanzministerium.de
+- [ ] **15.5** BMF-Schreiben (ausgewählte, relevante) — Scraper + strukturierter Ingest (Datum, Aktenzeichen als Metadaten)
+- [ ] **15.6** BFH-Urteile (günstige, nicht in Verwaltungspraxis überführte) — Scraper für bundesfinanzhof.de
+
+---
+
+## Phase 16: Hierarchisches Chunking
+
+- [ ] **16.1** XML-Parser erweitern: Absätze (`Abs. X`) und Nummern (`Nr. Y`) als separate Child-Nodes extrahieren, wo die XML-Struktur es hergibt
+- [ ] **16.2** LlamaIndex Hierarchical Node Parser (`HierarchicalNodeParser`) einbinden: Gesetz → Paragraf → Absatz als Parent-Child-Beziehung
+- [ ] **16.3** AutoMergingRetriever einsetzen: Child-Treffer zu Parent-Node zusammenführen wenn ≥ N Kinder eines Paragrafen gematcht werden
+- [ ] **16.4** `section`-Metadatum im SourceChunk präzisieren (z.B. `Abs. 1 Nr. 4` statt leer)
+- [ ] **16.5** Tests und Goldset-Evaluation nach Umstellung
+
+---
+
 ## Abhängigkeiten
 
 ```text

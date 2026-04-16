@@ -166,7 +166,7 @@
   - [x] `automerge`-Flag in `HybridRetriever`, `--no-automerge` in CLI
   - [x] `compare_snapshots()` + `eval-compare`-CLI-Command
   - [x] `eval.ablation`-Target (beide Modi sequenziell + Vergleichstabelle)
-  - [ ] Ablation tatsächlich ausführen und Ergebnisse dokumentieren
+  - [ ] Ablation tatsächlich ausführen und Ergebnisse dokumentieren *(zurückgestellt)*
 
 ---
 

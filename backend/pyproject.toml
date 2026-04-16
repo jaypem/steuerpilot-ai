@@ -38,6 +38,7 @@ eval = [
     "datasets>=3.0",
     "langchain-anthropic>=0.3",
     "langchain-huggingface>=0.1",
+    "langchain-ollama>=1.1.0",
     "ragas>=0.2",
 ]
 

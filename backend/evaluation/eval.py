@@ -113,9 +113,16 @@ async def _get_contexts(
 
 
 def _build_ragas_evaluator(api_key: str):
-    """Build RAGAS LLM and embeddings wrappers using Anthropic + HuggingFace."""
+    """
+    Build RAGAS LLM and embeddings wrappers.
+
+    Priority:
+      1. Ollama / gemma4  (local, no API key needed)
+      2. Anthropic / claude-haiku  (fallback, requires ANTHROPIC_API_KEY)
+
+    Raises SystemExit if neither is available.
+    """
     try:
-        from langchain_anthropic import ChatAnthropic
         from ragas.llms import LangchainLLMWrapper
         from ragas.embeddings import LangchainEmbeddingsWrapper
         from langchain_huggingface import HuggingFaceEmbeddings
@@ -123,12 +130,42 @@ def _build_ragas_evaluator(api_key: str):
         raise SystemExit(
             f"\n[eval] Missing eval dependencies: {e}\n"
             "Install them with:\n"
-            "  uv add --group eval ragas langchain-anthropic langchain-huggingface datasets\n"
+            "  uv add --group eval ragas langchain-anthropic langchain-ollama langchain-huggingface datasets\n"
         )
 
-    llm = LangchainLLMWrapper(
-        ChatAnthropic(model="claude-haiku-4-5-20251001", api_key=api_key, max_tokens=2048)
-    )
+    llm = None
+
+    # 1. Try Ollama / gemma4
+    try:
+        import httpx
+        from langchain_ollama import ChatOllama
+        from app.config import get_settings
+
+        base_url = get_settings().ollama_base_url
+        httpx.get(f"{base_url}/api/tags", timeout=3.0)  # connectivity check
+        llm = LangchainLLMWrapper(ChatOllama(model="gemma4", base_url=base_url))
+        logger.info("RAGAS judge: Ollama/gemma4 @ %s", base_url)
+    except Exception as exc:
+        logger.info("Ollama nicht erreichbar (%s) — versuche Anthropic-Fallback.", exc)
+
+    # 2. Fallback: Anthropic / claude-haiku
+    if llm is None:
+        if not api_key:
+            raise SystemExit(
+                "\n[eval] Kein LLM verfügbar: Ollama nicht erreichbar und "
+                "ANTHROPIC_API_KEY nicht gesetzt.\n"
+                "Entweder Ollama starten (ollama serve) oder ANTHROPIC_API_KEY in .env setzen.\n"
+            )
+        try:
+            from langchain_anthropic import ChatAnthropic
+        except ImportError as e:
+            raise SystemExit(f"\n[eval] Missing eval dependency: {e}\n")
+
+        llm = LangchainLLMWrapper(
+            ChatAnthropic(model="claude-haiku-4-5-20251001", api_key=api_key, max_tokens=2048)
+        )
+        logger.info("RAGAS judge: Claude Haiku (Anthropic)")
+
     embeddings = LangchainEmbeddingsWrapper(
         HuggingFaceEmbeddings(model_name="intfloat/multilingual-e5-large")
     )
@@ -223,8 +260,7 @@ def run_evaluation(
     run_ts = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     if not api_key:
-        console.print("[red]ANTHROPIC_API_KEY nicht gesetzt — Eval abgebrochen.[/red]")
-        raise SystemExit(1)
+        logger.info("ANTHROPIC_API_KEY nicht gesetzt — versuche Ollama als Judge.")
 
     # ── Load goldset ──────────────────────────────────────────────────────────
     goldset = json.loads(_GOLDSET_PATH.read_text(encoding="utf-8"))

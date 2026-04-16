@@ -1,13 +1,29 @@
 """
 Parses gesetze-im-internet.de XML into LlamaIndex Document objects.
 
-Each <norm> element that has a <gliederungsbez> starting with "§" becomes
-one Document.  The text is the concatenated content of all <P> children.
+Each <norm> element that has an <enbez> starting with "§" becomes one Document.
+The text is extracted from <textdaten>/<text> (excluding <fussnoten>).
+
+XML structure (gesetze-im-internet.de DTD 1.01):
+  <norm>
+    <metadaten>
+      <enbez>§ 4</enbez>           ← paragraph reference
+      <titel>Gewinnbegriff…</titel> ← optional title
+    </metadaten>
+    <textdaten>
+      <fussnoten>…</fussnoten>      ← cross-references/annotations — skipped
+      <text format="XML">
+        <Content>
+          <P>(1) Gewinn ist…</P>    ← one <P> per Absatz
+          <P>(2) …</P>
+        </Content>
+      </text>
+    </textdaten>
+  </norm>
 
 Metadata per Document:
   law       — e.g. "EStG"
   paragraph — e.g. "§ 4"
-  section   — e.g. "Abs. 5 Nr. 6b" (empty for the paragraph heading itself)
   title     — e.g. "Betriebsausgaben"
   year      — int, e.g. 2025
   url       — canonical permalink on gesetze-im-internet.de
@@ -68,34 +84,35 @@ def parse_law_xml(xml_path: Path, law: str, year: int) -> list[Document]:
     for norm in soup.find_all("norm"):
         meta_tag = norm.find("metadaten")
         if not meta_tag:
-            continue
-
-        # Paragraph reference (§ 1, § 2a, …)
-        gl = meta_tag.find("gliederungseinheit")
-        if not gl:
             skipped += 1
             continue
 
-        bez_tag = gl.find("gliederungsbez")
-        if not bez_tag:
+        # Paragraph reference (§ 1, § 2a, …) lives directly in <metadaten>/<enbez>
+        enbez_tag = meta_tag.find("enbez")
+        if not enbez_tag:
             skipped += 1
             continue
 
-        paragraph = bez_tag.get_text(strip=True)
+        paragraph = enbez_tag.get_text(strip=True)
         if not paragraph.startswith("§"):
             skipped += 1
             continue  # skip table-of-contents / intro sections
 
-        title_tag = gl.find("gliederungstitel")
+        title_tag = meta_tag.find("titel")
         title = title_tag.get_text(strip=True) if title_tag else ""
 
-        # Body text
+        # Body text — extract from <text> only, skipping <fussnoten>
         textdaten = norm.find("textdaten")
         if not textdaten:
             skipped += 1
             continue
 
-        text = _extract_text(textdaten).strip()
+        text_node = textdaten.find("text")
+        if not text_node:
+            skipped += 1
+            continue
+
+        text = _extract_text(text_node).strip()
         if not text:
             skipped += 1
             continue

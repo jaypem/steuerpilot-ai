@@ -54,9 +54,9 @@ def test_para_url_no_para():
 # ─── parse_law_xml ────────────────────────────────────────────────────────────
 
 def test_parse_returns_only_paragraph_norms(xml_file: Path):
-    """Non-§ norms (Einleitung, norms without gliederungseinheit) are skipped."""
+    """Non-§ norms (Inhaltsübersicht, norms without <enbez>) are skipped."""
     docs = parse_law_xml(xml_file, "EStG", 2025)
-    # MINIMAL_XML has 2 § norms, 1 non-§ norm, 1 norm without gliederungseinheit
+    # MINIMAL_XML has 2 § norms, 1 non-§ norm, 1 norm without <enbez>
     assert len(docs) == 2
 
 

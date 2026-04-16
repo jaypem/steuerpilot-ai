@@ -38,52 +38,53 @@ MINIMAL_XML = textwrap.dedent("""\
     <dokumente>
       <norm>
         <metadaten>
-          <gliederungseinheit>
-            <gliederungsbez>§ 4</gliederungsbez>
-            <gliederungstitel>Betriebsausgaben</gliederungstitel>
-          </gliederungseinheit>
+          <jurabk>EStG</jurabk>
+          <enbez>§ 4</enbez>
+          <titel format="XML">Betriebsausgaben</titel>
         </metadaten>
         <textdaten>
-          <text>
+          <fussnoten>
+            <Content><P>(+++ Fußnote die ignoriert werden soll +++)</P></Content>
+          </fussnoten>
+          <text format="XML">
             <Content>
-              <P>Betriebsausgaben sind die Aufwendungen, die durch den Betrieb veranlasst sind.</P>
-              <P>Nicht abzugsfähig sind Aufwendungen gemäß § 12 dieses Gesetzes.</P>
+              <P>(1) Betriebsausgaben sind die Aufwendungen, die durch den Betrieb veranlasst sind.</P>
+              <P>(2) Nicht abzugsfähig sind Aufwendungen gemäß § 12 dieses Gesetzes.</P>
             </Content>
           </text>
         </textdaten>
       </norm>
       <norm>
         <metadaten>
-          <gliederungseinheit>
-            <gliederungsbez>§ 9</gliederungsbez>
-            <gliederungstitel>Werbungskosten</gliederungstitel>
-          </gliederungseinheit>
+          <jurabk>EStG</jurabk>
+          <enbez>§ 9</enbez>
+          <titel format="XML">Werbungskosten</titel>
         </metadaten>
         <textdaten>
-          <text>
+          <text format="XML">
             <Content>
-              <P>Werbungskosten sind Aufwendungen zur Erwerbung, Sicherung und Erhaltung der Einnahmen.</P>
-              <P>Hierzu gehören auch Arbeitsmittel i.V.m. § 4 Abs. 5.</P>
+              <P>(1) Werbungskosten sind Aufwendungen zur Erwerbung, Sicherung und Erhaltung der Einnahmen.</P>
+              <P>(2) Hierzu gehören auch Arbeitsmittel i.V.m. § 4 Abs. 5.</P>
             </Content>
           </text>
         </textdaten>
       </norm>
       <norm>
         <metadaten>
-          <gliederungseinheit>
-            <gliederungsbez>Einleitung</gliederungsbez>
-          </gliederungseinheit>
+          <jurabk>EStG</jurabk>
+          <enbez>Inhaltsübersicht</enbez>
         </metadaten>
         <textdaten>
-          <text><Content><P>Dies ist eine Einleitung ohne §.</P></Content></text>
+          <text format="XML"><Content><P>Dies ist eine Inhaltsübersicht ohne §.</P></Content></text>
         </textdaten>
       </norm>
       <norm>
         <metadaten>
-          <!-- no gliederungseinheit at all -->
+          <!-- no <enbez> at all — should be skipped -->
+          <jurabk>EStG</jurabk>
         </metadaten>
         <textdaten>
-          <text><Content><P>Irrelevant norm.</P></Content></text>
+          <text format="XML"><Content><P>Irrelevant norm.</P></Content></text>
         </textdaten>
       </norm>
     </dokumente>

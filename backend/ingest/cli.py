@@ -225,6 +225,122 @@ def ingest_lstr(
     )
 
 
+# ─── ingest-bfh ───────────────────────────────────────────────────────────────
+
+
+@app.command(name="ingest-bfh")
+def ingest_bfh(
+    year: int = typer.Option(2025, help="Steuerjahr (RAG-Filter)"),
+    chroma_path: str = typer.Option("chroma_db", help="Pfad zur Chroma-Datenbank"),
+    verbose: bool = typer.Option(False, "--verbose", "-v"),
+) -> None:
+    """BFH-Urteile herunterladen, parsen und in Chroma speichern.
+
+    Verwendet den kuratierten Katalog in ingest/scrapers/bfh_catalog.py.
+    Fehlgeschlagene Downloads werden übersprungen (Warnung im Log).
+    """
+    _setup_logging(verbose)
+
+    from ingest.scrapers.bfh import download_and_parse_bfh
+    from ingest.store import store_documents
+
+    console.rule(f"[bold]BFH-Urteile {year}[/bold]")
+
+    from ingest.scrapers.bfh_catalog import get_active_urteile
+    active = get_active_urteile(year)
+    bstbl_nein = [u for u in active if not u.bstbl_aufgenommen]
+    console.print(
+        f"  Katalog: [cyan]{len(active)} aktive Urteile[/cyan] für {year} "
+        f"([yellow]{len(bstbl_nein)} noch nicht von Verwaltung übernommen[/yellow])"
+    )
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+        transient=True,
+    ) as progress:
+        t = progress.add_task("BFH-Urteile herunterladen und parsen…")
+        raw_dir = _RAW_DATA_DIR / str(year)
+        result = asyncio.run(download_and_parse_bfh(raw_dir, year))
+        progress.update(t, completed=True)
+
+    console.print(f"  BFH: [green]{len(result.parent_nodes)} Abschnitte[/green] geparst")
+
+    if not result.parent_nodes:
+        console.print("[yellow]⚠ Keine Dokumente extrahiert — Ingest abgebrochen.[/yellow]")
+        raise typer.Exit(code=1)
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+    ) as progress:
+        progress.add_task("Einbetten und speichern BFH-Urteile…")
+        stored = store_documents(result, chroma_path, "BFH", year)
+
+    console.print(
+        f"\n[bold green]✓ BFH-Ingest abgeschlossen:[/bold green] "
+        f"{stored} Dokumente für BFH ({year}) in Chroma gespeichert."
+    )
+
+
+# ─── ingest-bmf ───────────────────────────────────────────────────────────────
+
+
+@app.command(name="ingest-bmf")
+def ingest_bmf(
+    year: int = typer.Option(2025, help="Steuerjahr (RAG-Filter)"),
+    chroma_path: str = typer.Option("chroma_db", help="Pfad zur Chroma-Datenbank"),
+    verbose: bool = typer.Option(False, "--verbose", "-v"),
+) -> None:
+    """BMF-Schreiben herunterladen, parsen und in Chroma speichern.
+
+    Verwendet den kuratierten Katalog in ingest/scrapers/bmf_catalog.py.
+    Fehlgeschlagene Downloads werden übersprungen (Warnung im Log).
+    """
+    _setup_logging(verbose)
+
+    from ingest.scrapers.bmf import download_and_parse_bmf
+    from ingest.store import store_documents
+
+    console.rule(f"[bold]BMF-Schreiben {year}[/bold]")
+
+    from ingest.scrapers.bmf_catalog import get_active_schreiben
+    active = get_active_schreiben(year)
+    console.print(f"  Katalog: [cyan]{len(active)} aktive Schreiben[/cyan] für {year}")
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+        transient=True,
+    ) as progress:
+        t = progress.add_task("BMF-Schreiben herunterladen und parsen…")
+        raw_dir = _RAW_DATA_DIR / str(year)
+        result = asyncio.run(download_and_parse_bmf(raw_dir, year))
+        progress.update(t, completed=True)
+
+    console.print(f"  BMF: [green]{len(result.parent_nodes)} Abschnitte[/green] geparst")
+
+    if not result.parent_nodes:
+        console.print("[yellow]⚠ Keine Dokumente extrahiert — Ingest abgebrochen.[/yellow]")
+        raise typer.Exit(code=1)
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+    ) as progress:
+        progress.add_task("Einbetten und speichern BMF-Schreiben…")
+        stored = store_documents(result, chroma_path, "BMF", year)
+
+    console.print(
+        f"\n[bold green]✓ BMF-Ingest abgeschlossen:[/bold green] "
+        f"{stored} Dokumente für BMF ({year}) in Chroma gespeichert."
+    )
+
+
 # ─── check-sources ────────────────────────────────────────────────────────────
 
 

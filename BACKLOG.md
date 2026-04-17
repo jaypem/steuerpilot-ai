@@ -150,8 +150,17 @@
 - [x] **15.2** SolzG (Solidaritätszuschlaggesetz) in `LAW_URLS` ergänzen und ingestieren (`solzg_1995/xml.zip`)
 - [x] **15.3** GewStG (Gewerbesteuergesetz) in `LAW_URLS` ergänzen und ingestieren (`gewstg/xml.zip`)
 - [x] **15.4** LStR (Lohnsteuer-Richtlinien) — eigener Downloader/Scraper für bundesfinanzministerium.de
-- [ ] **15.5** BMF-Schreiben (ausgewählte, relevante) — Scraper + strukturierter Ingest (Datum, Aktenzeichen als Metadaten)
-- [ ] **15.6** BFH-Urteile (günstige, nicht in Verwaltungspraxis überführte) — Scraper für bundesfinanzhof.de
+- [x] **15.5** BMF-Schreiben (ausgewählte, relevante) — Scraper + strukturierter Ingest (Datum, Aktenzeichen als Metadaten)
+  - [x] `bmf_catalog.py` — 20 kuratierte Schreiben (Aktenzeichen, Datum, URL, valid_from_year)
+  - [x] `scrapers/bmf.py` — Download + PDF/HTML-Parser + Abschnitt-Split + `ParsedLaw`
+  - [x] Registry-Eintrag, `ingest-bmf`-CLI-Command, `make local.ingest-bmf`
+  - [x] 24 Unit-Tests in `tests/test_bmf_parser.py`
+  - [ ] `make local.ingest-bmf` ausführen + unverified URLs manuell prüfen *(zurückgestellt)*
+- [x] **15.6** BFH-Urteile (günstige, nicht in Verwaltungspraxis überführte) — Scraper für bundesfinanzhof.de
+  - [x] **15.6.1** Katalog `bfh_catalog.py` — 20 kuratierte Urteile (Az., ECLI, Datum, Thema, BStBl-Status)
+  - [x] **15.6.2** Downloader/Parser `scrapers/bfh.py` — HTML-Volltext von bundesfinanzhof.de, Split nach Leitsatz / Tatbestand / Entscheidungsgründe
+  - [x] **15.6.3** Registry-Eintrag, `ingest-bfh`-CLI-Command, `make local.ingest-bfh`
+  - [x] **15.6.4** Unit-Tests `tests/test_bfh_parser.py` — 33 Tests, alle grün
 
 ---
 
@@ -167,6 +176,23 @@
   - [x] `compare_snapshots()` + `eval-compare`-CLI-Command
   - [x] `eval.ablation`-Target (beide Modi sequenziell + Vergleichstabelle)
   - [ ] Ablation tatsächlich ausführen und Ergebnisse dokumentieren *(zurückgestellt)*
+
+---
+
+---
+
+## Phase 17: Infrastruktur und Betrieb
+
+- [ ] **17.1** GitHub Actions Cron-Job `check-sources.yml` — wöchentlich `make check-sources`, bei Fehlern automatisch GitHub Issue anlegen
+- [ ] **17.2** `NEXT_PUBLIC_USE_MOCK=false` setzen, Frontend gegen echtes Backend testen (End-to-End-Smoke-Test)
+
+---
+
+## Phase 18: Frontend-Features
+
+- [ ] **18.1** Chat-Export — Konversation als PDF oder Markdown herunterladen (inkl. Quellenangaben)
+- [ ] **18.2** Steuerjahr-Umschalter im Frontend — aktuell hartkodiert auf 2025; Dropdown für Nachveranlagungen
+- [ ] **18.3** Session umbenennen — auto-generierter Name durch Nutzer editierbar
 
 ---
 

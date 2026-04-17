@@ -54,7 +54,7 @@ setup: ## Install all dependencies and initialise env files
 
 # ---- Local Development ------------------------------------------------------
 
-.PHONY: local.api local.web local.ingest local.ingest-lstr check-sources
+.PHONY: local.api local.web local.ingest local.ingest-lstr local.ingest-bmf local.ingest-bfh check-sources
 
 local.api: ## Run the FastAPI backend (http://localhost:8000)
 	@cd backend && $(UV) run uvicorn app.main:app --reload
@@ -72,6 +72,12 @@ local.ingest-full: ## Build the full knowledge base — all 6 laws (YEAR=2025)
 
 local.ingest-lstr: ## Download and ingest LStR PDF (YEAR=2023)
 	@cd backend && $(UV) run python -m ingest.cli ingest-lstr --year $(or $(YEAR),2023)
+
+local.ingest-bfh: ## Download und Ingest BFH-Urteile (YEAR=2025)
+	@cd backend && $(UV) run python -m ingest.cli ingest-bfh --year $(or $(YEAR),2025)
+
+local.ingest-bmf: ## Download und Ingest BMF-Schreiben (YEAR=2025)
+	@cd backend && $(UV) run python -m ingest.cli ingest-bmf --year $(or $(YEAR),2025)
 
 check-sources: ## HTTP-HEAD check all external sources (exit 1 on failure)
 	@cd backend && $(UV) run python -m ingest.cli check-sources

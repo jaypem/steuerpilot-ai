@@ -69,4 +69,19 @@ Unterstützte Gesetze:
 | Datei | Variable | Beschreibung |
 | --- | --- | --- |
 | `backend/.env` | `ANTHROPIC_API_KEY` | Anthropic API Key |
+| `backend/.env` | `HF_TOKEN` | HuggingFace API Token (optional, siehe unten) |
 | `frontend/.env.local` | `NEXT_PUBLIC_API_URL` | Backend-URL (default: `http://localhost:8000`) |
+
+### HuggingFace Token (optional)
+
+Das Embedding-Modell (`intfloat/multilingual-e5-large`) wird beim ersten Ingest-Lauf von HuggingFace heruntergeladen und danach lokal gecacht. Ohne Token ist der Download auf ca. 1 MB/s gedrosselt.
+
+1. Kostenlosen Account erstellen: [huggingface.co/join](https://huggingface.co/join)
+2. Token generieren: [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens) → *New token* → Role: **Read**
+3. In `backend/.env` eintragen:
+
+```bash
+HF_TOKEN=hf_xxxxxxxxxxxxxxxxxxxx
+```
+
+Nach dem ersten erfolgreichen Download spielt die Drosselung keine Rolle mehr — das Modell liegt dann unter `~/.cache/huggingface/hub/`.

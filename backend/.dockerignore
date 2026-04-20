@@ -1,0 +1,10 @@
+.env
+.env.*
+__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+chroma_db
+chroma_db_docstore.json
+steuerpilot.db
+.venv

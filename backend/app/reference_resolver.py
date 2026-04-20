@@ -10,6 +10,7 @@ After the initial retrieval the resolver extracts all such references,
 fetches the referenced paragraphs from Chroma (if not already retrieved),
 and appends them to the context — up to MAX_DEPTH levels deep.
 """
+
 import logging
 import re
 
@@ -51,9 +52,7 @@ def resolve_references(
         return initial_nodes
 
     seen_ids: set[str] = {n.node.node_id for n in initial_nodes}
-    seen_paras: set[str] = {
-        n.node.metadata.get("paragraph", "") for n in initial_nodes
-    }
+    seen_paras: set[str] = {n.node.metadata.get("paragraph", "") for n in initial_nodes}
 
     # Collect all paragraph numbers referenced in the retrieved text
     referenced: set[str] = set()
@@ -72,9 +71,7 @@ def resolve_references(
     # Chroma's $in operator checks if field value is in a list
     para_filters = [{"paragraph": {"$eq": f"§ {p}"}} for p in referenced]
     if len(para_filters) == 1:
-        where_clause: dict = {
-            "$and": [{"year": {"$eq": year}}, para_filters[0]]
-        }
+        where_clause: dict = {"$and": [{"year": {"$eq": year}}, para_filters[0]]}
     else:
         where_clause = {
             "$and": [
@@ -86,7 +83,7 @@ def resolve_references(
     try:
         results = chroma_collection.get(
             where=where_clause,
-            include=["documents", "metadatas", "ids"],
+            include=["documents", "metadatas"],
         )
     except Exception as exc:
         logger.warning("Reference resolution query failed: %s", exc)
@@ -113,7 +110,9 @@ def resolve_references(
 
     logger.debug(
         "Reference resolver depth=%d: added %d nodes for %s",
-        depth, len(new_nodes), referenced,
+        depth,
+        len(new_nodes),
+        referenced,
     )
 
     combined = initial_nodes + new_nodes

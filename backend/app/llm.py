@@ -6,6 +6,7 @@ pool / token budget) is reused across requests.
 
 Provider selection: set LLM_PROVIDER=anthropic (default) or ollama in .env.
 """
+
 from functools import lru_cache
 
 from llama_index.core.llms import LLM
@@ -23,7 +24,7 @@ def get_llm() -> LLM:
         return Ollama(
             model=settings.ollama_model,
             base_url=settings.ollama_base_url,
-            request_timeout=180.0,
+            request_timeout=600.0,
         )
 
     # Default: Anthropic claude-sonnet-4-6 with prompt caching

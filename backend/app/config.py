@@ -20,9 +20,9 @@ class Settings(BaseSettings):
     tax_year: int = 2025
 
     # LLM provider: "anthropic" | "ollama"
-    llm_provider: str = "anthropic"
+    llm_provider: str = "ollama"
     ollama_base_url: str = "http://localhost:11434"
-    ollama_model: str = "llama3.2"
+    ollama_model: str = "gemma4:26b"
 
     # RAG — Chroma vector store path (relative to backend working directory)
     chroma_path: str = "chroma_db"

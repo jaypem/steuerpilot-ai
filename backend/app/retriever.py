@@ -37,7 +37,6 @@ logger = logging.getLogger(__name__)
 
 DENSE_TOP_K = 30  # mehr Kandidaten für den Cross-Encoder → besserer Recall
 BM25_TOP_K = 20
-RERANK_TOP_N = 8  # nach Re-Ranking; AutoMerge kann die Zahl weiter reduzieren
 MERGE_THRESHOLD = 3  # min. Child-Treffer eines § um zum Parent zusammenzuführen
 
 
@@ -80,10 +79,14 @@ class HybridRetriever(BaseRetriever):
         year: int,
         chroma_path: str = "",
         automerge: bool = True,
+        rerank_top_n: int = 5,
+        chunk_max_chars: int = 0,
     ) -> None:
         self._year = year
         self._chroma_collection = chroma_collection
         self._automerge = automerge
+        self._rerank_top_n = rerank_top_n
+        self._chunk_max_chars = chunk_max_chars
 
         # Dense retriever with year metadata filter
         self._dense = index.as_retriever(
@@ -163,12 +166,31 @@ class HybridRetriever(BaseRetriever):
         # 6. Reference resolution
         merged = resolve_references(merged, self._chroma_collection, self._year)
 
+        # 7. Chunk truncation
+        if self._chunk_max_chars > 0:
+            merged = self._truncate(merged)
+
         return merged
 
     async def _aretrieve(self, query_bundle: QueryBundle) -> list[NodeWithScore]:
         return self._retrieve(query_bundle)
 
     # ── Internal helpers ──────────────────────────────────────────────────────
+
+    def _truncate(self, nodes: list[NodeWithScore]) -> list[NodeWithScore]:
+        result = []
+        for n in nodes:
+            text = n.node.get_content()
+            if len(text) > self._chunk_max_chars:
+                truncated = TextNode(
+                    text=text[: self._chunk_max_chars],
+                    id_=n.node.node_id,
+                    metadata=n.node.metadata,
+                )
+                result.append(NodeWithScore(node=truncated, score=n.score))
+            else:
+                result.append(n)
+        return result
 
     def _rerank(self, query: str, nodes: list[NodeWithScore]) -> list[NodeWithScore]:
         try:
@@ -178,10 +200,10 @@ class HybridRetriever(BaseRetriever):
             for node, score in zip(nodes, scores):
                 node.score = float(score)
             nodes.sort(key=lambda n: n.score or 0.0, reverse=True)
-            return nodes[:RERANK_TOP_N]
+            return nodes[:self._rerank_top_n]
         except Exception as exc:
             logger.warning("Re-ranking failed (%s) — using dense order.", exc)
-            return nodes[:RERANK_TOP_N]
+            return nodes[:self._rerank_top_n]
 
     def _auto_merge(self, nodes: list[NodeWithScore]) -> list[NodeWithScore]:
         """

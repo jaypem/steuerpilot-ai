@@ -27,6 +27,17 @@ class Settings(BaseSettings):
     # RAG — Chroma vector store path (relative to backend working directory)
     chroma_path: str = "chroma_db"
 
+    # RAG — number of chunks passed to the LLM after re-ranking
+    # reduce for smaller models (e.g. 3–4 for 4B), increase for larger ones (8+)
+    rag_top_n: int = 5
+
+    # RAG — max characters per chunk passed to the LLM (0 = no limit)
+    rag_chunk_max_chars: int = 800
+
+    # Chat memory — max tokens kept in history sent to the LLM
+    # reduce for smaller models (e.g. 1024–2048 for 4B)
+    memory_token_limit: int = 2048
+
 
 @lru_cache
 def get_settings() -> Settings:

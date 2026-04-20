@@ -195,6 +195,8 @@ def _build_engine(
             chroma_collection=collection,
             year=tax_year,
             chroma_path=settings.chroma_path,
+            rerank_top_n=settings.rag_top_n,
+            chunk_max_chars=settings.rag_chunk_max_chars,
         )
         logger.info("Using ContextChatEngine (RAG) for year %d", tax_year)
         return ContextChatEngine.from_defaults(
@@ -245,11 +247,12 @@ async def stream_chat_response(
       extract metadata → emit SSE events.
     """
     try:
+        settings = get_settings()
         yield _sse(StatusChunk(label="Gesprächsverlauf wird geladen…"))
         history = await _load_history(db, session_id)
         memory = ChatMemoryBuffer.from_defaults(
             chat_history=history,
-            token_limit=8192,
+            token_limit=settings.memory_token_limit,
         )
         engine = _build_engine(memory, tax_year)
         processor = ResponseStreamProcessor()

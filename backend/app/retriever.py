@@ -10,13 +10,19 @@ Pipeline per query:
      children of the same § appear in the result set
   6. Reference resolution (app/reference_resolver.py)
 """
+
 import logging
 from functools import lru_cache
 from typing import TYPE_CHECKING
 
 import chromadb
 from llama_index.core.retrievers import BaseRetriever
-from llama_index.core.schema import NodeRelationship, NodeWithScore, QueryBundle, TextNode
+from llama_index.core.schema import (
+    NodeRelationship,
+    NodeWithScore,
+    QueryBundle,
+    TextNode,
+)
 from llama_index.core.storage.docstore import SimpleDocumentStore
 from llama_index.core.vector_stores import MetadataFilter, MetadataFilters
 from llama_index.retrievers.bm25 import BM25Retriever
@@ -29,27 +35,26 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-DENSE_TOP_K    = 30   # mehr Kandidaten für den Cross-Encoder → besserer Recall
-BM25_TOP_K     = 20
-RERANK_TOP_N   = 8    # nach Re-Ranking; AutoMerge kann die Zahl weiter reduzieren
-MERGE_THRESHOLD = 3   # min. Child-Treffer eines § um zum Parent zusammenzuführen
+DENSE_TOP_K = 30  # mehr Kandidaten für den Cross-Encoder → besserer Recall
+BM25_TOP_K = 20
+RERANK_TOP_N = 8  # nach Re-Ranking; AutoMerge kann die Zahl weiter reduzieren
+MERGE_THRESHOLD = 3  # min. Child-Treffer eines § um zum Parent zusammenzuführen
 
 
 @lru_cache
 def _get_reranker():
     """Load Cross-Encoder once and cache it."""
     from sentence_transformers import CrossEncoder
+
     logger.info("Loading cross-encoder/ms-marco-MiniLM-L-6-v2 …")
     return CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
 
 
-def _nodes_from_chroma(
-    collection: chromadb.Collection, year: int
-) -> list[TextNode]:
+def _nodes_from_chroma(collection: chromadb.Collection, year: int) -> list[TextNode]:
     """Fetch all nodes for *year* from Chroma — used to build the BM25 corpus."""
     results = collection.get(
         where={"year": {"$eq": year}},
-        include=["documents", "metadatas", "ids"],
+        include=["documents", "metadatas"],
     )
     nodes: list[TextNode] = []
     for doc_id, text, meta in zip(
@@ -165,9 +170,7 @@ class HybridRetriever(BaseRetriever):
 
     # ── Internal helpers ──────────────────────────────────────────────────────
 
-    def _rerank(
-        self, query: str, nodes: list[NodeWithScore]
-    ) -> list[NodeWithScore]:
+    def _rerank(self, query: str, nodes: list[NodeWithScore]) -> list[NodeWithScore]:
         try:
             reranker = _get_reranker()
             pairs = [(query, n.node.get_content()) for n in nodes]
@@ -213,7 +216,9 @@ class HybridRetriever(BaseRetriever):
                         result.append(NodeWithScore(node=parent_doc, score=max_score))
                         logger.debug(
                             "AutoMerge: %d children of %s → parent (score %.3f)",
-                            len(children), parent_id, max_score,
+                            len(children),
+                            parent_id,
+                            max_score,
                         )
                         continue
                 except Exception as exc:

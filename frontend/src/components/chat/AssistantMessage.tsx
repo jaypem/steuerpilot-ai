@@ -76,7 +76,7 @@ const mdComponents: React.ComponentProps<typeof Markdown>["components"] = {
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function AssistantMessage({ message }: AssistantMessageProps) {
-  // Append a block cursor character while streaming so it renders inline
+  const isWaiting = message.isStreaming && message.content === "";
   const displayContent = message.isStreaming
     ? message.content + " ▌"
     : message.content;
@@ -86,9 +86,17 @@ export default function AssistantMessage({ message }: AssistantMessageProps) {
       <div className="max-w-[85%] space-y-2">
         {/* Bubble */}
         <div className="rounded-2xl rounded-tl-sm border border-border bg-surface-raised px-4 py-3 shadow-sm">
-          <Markdown remarkPlugins={[remarkGfm]} components={mdComponents}>
-            {displayContent}
-          </Markdown>
+          {isWaiting ? (
+            <span className="flex items-center gap-1.5 py-0.5">
+              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted [animation-delay:-0.3s]" />
+              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted [animation-delay:-0.15s]" />
+              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted" />
+            </span>
+          ) : (
+            <Markdown remarkPlugins={[remarkGfm]} components={mdComponents}>
+              {displayContent}
+            </Markdown>
+          )}
         </div>
 
         {/* Metadaten: RiskBadge + Ersparnis */}

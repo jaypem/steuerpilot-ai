@@ -10,7 +10,9 @@ interface SourceChipProps {
 export default function SourceChip({ source }: SourceChipProps) {
   const [expanded, setExpanded] = useState(false);
 
-  const label = `${source.paragraph} ${source.section} ${source.law}`;
+  const label = [source.paragraph, source.section, source.law]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <div className="inline-block">

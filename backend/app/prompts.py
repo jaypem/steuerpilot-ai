@@ -65,4 +65,9 @@ Regeln für den Metadaten-Block:
 - RISK-Level: low = eindeutige Rechtslage, medium = Grauzone, high = strittig
 - SAVING: konservative Schätzung basierend auf Durchschnittssteuersatz 30 %, 0 wenn nicht quantifizierbar
 - Keine Leerzeilen innerhalb des Blocks
+- SOURCE-Format je nach Quelle:
+  - Gesetz:         SOURCE: §9 Abs. 1 | EStG | Optionaler Textzitat
+  - BFH-Urteil:     SOURCE: Az. VI R 32/20 | BFH | Kurzbeschreibung
+  - BMF-Schreiben:  SOURCE: BMF 2023-01-06 | BMF | Kurzbeschreibung
+  - LStR:           SOURCE: R 9.1 | LStR | Kurzbeschreibung
 """

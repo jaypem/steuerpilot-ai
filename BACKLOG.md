@@ -184,7 +184,13 @@
 ## Phase 17: Infrastruktur und Betrieb
 
 - [ ] **17.1** GitHub Actions Cron-Job `check-sources.yml` — wöchentlich `make check-sources`, bei Fehlern automatisch GitHub Issue anlegen
-- [ ] **17.2** `NEXT_PUBLIC_USE_MOCK=false` setzen, Frontend gegen echtes Backend testen (End-to-End-Smoke-Test)
+- [x] **17.2** `NEXT_PUBLIC_USE_MOCK=false` setzen, Frontend gegen echtes Backend testen (End-to-End-Smoke-Test)
+
+---
+
+## Phase 19: LStR HTML-Scraper
+
+- [ ] **19.1** LStR-Scraper auf HTML umschreiben — BMF stellt LStR 2023 nicht mehr als PDF bereit, nur noch als HTML unter `lsth.bundesfinanzministerium.de/lsth/2023/home.html`. Scraper in `ingest/scrapers/lstr.py` muss von `pdfplumber` auf HTML-Parsing (BeautifulSoup) umgestellt werden. Registry-URL in `ingest/scrapers/registry.py` entsprechend aktualisieren.
 
 ---
 

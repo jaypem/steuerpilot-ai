@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 # ─── Metadata parsing ─────────────────────────────────────────────────────────
 
 _SOURCE_RE = re.compile(
-    r"^SOURCE:\s*(?P<para>§[^|]+?)\s*\|\s*(?P<law>[A-Z][A-Za-z]+)\s*(?:\|\s*(?P<text>.+))?$"
+    r"^SOURCE:\s*(?P<para>[^|]+?)\s*\|\s*(?P<law>[A-Z][A-Za-z0-9]+)\s*(?:\|\s*(?P<text>.+))?$"
 )
 _RISK_RE = re.compile(
     r"^RISK:\s*(?P<level>low|medium|high)\s*\|\s*(?P<label>[^|]+?)\s*\|\s*(?P<explanation>.+)$"
@@ -62,9 +62,15 @@ def _parse_meta_block(raw: str) -> ParsedMeta:
         m = _SOURCE_RE.match(line)
         if m:
             para_raw = m.group("para").strip()
-            parts = para_raw.split(None, 1)
-            paragraph = parts[0]
-            section = parts[1] if len(parts) > 1 else ""
+            # § sources: split off the paragraph number (e.g. "§9" | "Abs. 1")
+            # BFH/BMF/other: keep the full identifier as paragraph, no section
+            if para_raw.startswith("§"):
+                parts = para_raw.split(None, 1)
+                paragraph = parts[0]
+                section = parts[1] if len(parts) > 1 else ""
+            else:
+                paragraph = para_raw
+                section = ""
             meta.sources.append(
                 SourceChunk(
                     law=m.group("law"),

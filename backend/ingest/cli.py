@@ -8,6 +8,7 @@ Commands:
   steuerpilot search       QUERY [--year 2025] [--top-k 5]
   steuerpilot eval         [--year 2025]
 """
+
 import asyncio
 import logging
 import sys
@@ -23,6 +24,18 @@ app = typer.Typer(
     help="steuerpilot-ai Developer CLI",
     no_args_is_help=True,
 )
+
+_KNOWN_SOURCES = [
+    "EStG",
+    "EStDV",
+    "AO",
+    "UStG",
+    "SolzG",
+    "GewStG",
+    "LStR",
+    "BMF",
+    "BFH",
+]
 console = Console()
 
 # Project root is two levels above this file: backend/ingest/cli.py → backend/
@@ -38,6 +51,42 @@ def _setup_logging(verbose: bool) -> None:
     )
 
 
+# ─── status ───────────────────────────────────────────────────────────────────
+
+
+@app.command()
+def status(
+    year: int = typer.Option(2025, help="Steuerjahr"),
+    chroma_path: str = typer.Option("chroma_db", help="Pfad zur Chroma-Datenbank"),
+) -> None:
+    """Zeigt welche Quellen für ein Steuerjahr bereits im Index vorhanden sind."""
+    from ingest.store import index_summary
+
+    summary = index_summary(chroma_path)
+
+    table = Table(title=f"Index-Status {year}  ({chroma_path})", show_lines=True)
+    table.add_column("Quelle", style="cyan", no_wrap=True)
+    table.add_column("Nodes", justify="right")
+    table.add_column("Status", justify="center")
+
+    total = 0
+    present = 0
+    for source in _KNOWN_SOURCES:
+        count = summary.get((source, year), 0)
+        total += 1
+        if count > 0:
+            present += 1
+            table.add_row(source, str(count), "[green]✓ vorhanden[/green]")
+        else:
+            table.add_row(source, "—", "[red]✗ fehlt[/red]")
+
+    console.print(table)
+    console.print(
+        f"\n[bold]{present}/{total}[/bold] Quellen für {year} indiziert  "
+        f"| Gesamt: [green]{sum(summary.values())} Nodes[/green]"
+    )
+
+
 # ─── ingest ───────────────────────────────────────────────────────────────────
 
 
@@ -48,6 +97,9 @@ def ingest(
         ["EStG", "AO", "UStG"], help="Zu ingestende Gesetze"
     ),
     chroma_path: str = typer.Option("chroma_db", help="Pfad zur Chroma-Datenbank"),
+    skip_existing: bool = typer.Option(
+        False, "--skip-existing", help="Bereits indizierte Gesetze überspringen"
+    ),
     verbose: bool = typer.Option(False, "--verbose", "-v"),
 ) -> None:
     """Wissensbasis für ein Steuerjahr neu aufbauen (Download → Parse → Embed → Store)."""
@@ -55,7 +107,7 @@ def ingest(
 
     from ingest.downloader import download_law_xml, LAW_URLS
     from ingest.parser import parse_law_xml
-    from ingest.store import store_documents
+    from ingest.store import store_documents, count_existing
 
     unsupported = [l for l in laws if l not in LAW_URLS]
     if unsupported:
@@ -68,6 +120,14 @@ def ingest(
 
     for law in laws:
         console.rule(f"[bold]{law} {year}[/bold]")
+
+        if skip_existing:
+            existing = count_existing(chroma_path, law, year)
+            if existing > 0:
+                console.print(
+                    f"  [yellow]bereits vorhanden ({existing} Nodes) — übersprungen[/yellow]"
+                )
+                continue
 
         with Progress(
             SpinnerColumn(),
@@ -129,12 +189,16 @@ def search(
     try:
         collection = client.get_collection(COLLECTION_NAME)
     except Exception:
-        console.print("[red]Kein Index gefunden. Bitte zuerst 'steuerpilot ingest' ausführen.[/red]")
+        console.print(
+            "[red]Kein Index gefunden. Bitte zuerst 'steuerpilot ingest' ausführen.[/red]"
+        )
         raise typer.Exit(code=1)
 
     count = collection.count()
     if count == 0:
-        console.print("[red]Index ist leer. Bitte zuerst 'steuerpilot ingest' ausführen.[/red]")
+        console.print(
+            "[red]Index ist leer. Bitte zuerst 'steuerpilot ingest' ausführen.[/red]"
+        )
         raise typer.Exit(code=1)
 
     embed_model = get_embed_model()
@@ -178,6 +242,9 @@ def search(
 def ingest_lstr(
     year: int = typer.Option(2023, help="LStR-Ausgabejahr (entspricht dem PDF-Jahr)"),
     chroma_path: str = typer.Option("chroma_db", help="Pfad zur Chroma-Datenbank"),
+    skip_existing: bool = typer.Option(
+        False, "--skip-existing", help="Überspringen falls bereits indiziert"
+    ),
     verbose: bool = typer.Option(False, "--verbose", "-v"),
 ) -> None:
     """LStR-PDF herunterladen, parsen und in Chroma speichern."""
@@ -185,10 +252,19 @@ def ingest_lstr(
 
     from ingest.scrapers.lstr import download_and_parse_lstr
     from ingest.scrapers.registry import get_source
-    from ingest.store import store_documents
+    from ingest.store import store_documents, count_existing
 
     source = get_source("LStR")
     console.rule(f"[bold]LStR {year}[/bold]")
+
+    if skip_existing:
+        existing = count_existing(chroma_path, "LStR", year)
+        if existing > 0:
+            console.print(
+                f"  [yellow]LStR {year} bereits vorhanden ({existing} Nodes) — übersprungen[/yellow]"
+            )
+            return
+
     console.print(f"  URL (verif. {source.verified_year}): {source.url}")
 
     if year != source.verified_year:
@@ -209,7 +285,9 @@ def ingest_lstr(
         result = asyncio.run(download_and_parse_lstr(raw_dir, year))
         progress.update(t, completed=True)
 
-    console.print(f"  LStR: [green]{len(result.parent_nodes)} Abschnitte[/green] geparst")
+    console.print(
+        f"  LStR: [green]{len(result.parent_nodes)} Abschnitte[/green] geparst"
+    )
 
     with Progress(
         SpinnerColumn(),
@@ -232,6 +310,9 @@ def ingest_lstr(
 def ingest_bfh(
     year: int = typer.Option(2025, help="Steuerjahr (RAG-Filter)"),
     chroma_path: str = typer.Option("chroma_db", help="Pfad zur Chroma-Datenbank"),
+    skip_existing: bool = typer.Option(
+        False, "--skip-existing", help="Überspringen falls bereits indiziert"
+    ),
     verbose: bool = typer.Option(False, "--verbose", "-v"),
 ) -> None:
     """BFH-Urteile herunterladen, parsen und in Chroma speichern.
@@ -242,11 +323,20 @@ def ingest_bfh(
     _setup_logging(verbose)
 
     from ingest.scrapers.bfh import download_and_parse_bfh
-    from ingest.store import store_documents
+    from ingest.store import store_documents, count_existing
 
     console.rule(f"[bold]BFH-Urteile {year}[/bold]")
 
+    if skip_existing:
+        existing = count_existing(chroma_path, "BFH", year)
+        if existing > 0:
+            console.print(
+                f"  [yellow]BFH {year} bereits vorhanden ({existing} Nodes) — übersprungen[/yellow]"
+            )
+            return
+
     from ingest.scrapers.bfh_catalog import get_active_urteile
+
     active = get_active_urteile(year)
     bstbl_nein = [u for u in active if not u.bstbl_aufgenommen]
     console.print(
@@ -265,10 +355,14 @@ def ingest_bfh(
         result = asyncio.run(download_and_parse_bfh(raw_dir, year))
         progress.update(t, completed=True)
 
-    console.print(f"  BFH: [green]{len(result.parent_nodes)} Abschnitte[/green] geparst")
+    console.print(
+        f"  BFH: [green]{len(result.parent_nodes)} Abschnitte[/green] geparst"
+    )
 
     if not result.parent_nodes:
-        console.print("[yellow]⚠ Keine Dokumente extrahiert — Ingest abgebrochen.[/yellow]")
+        console.print(
+            "[yellow]⚠ Keine Dokumente extrahiert — Ingest abgebrochen.[/yellow]"
+        )
         raise typer.Exit(code=1)
 
     with Progress(
@@ -292,6 +386,9 @@ def ingest_bfh(
 def ingest_bmf(
     year: int = typer.Option(2025, help="Steuerjahr (RAG-Filter)"),
     chroma_path: str = typer.Option("chroma_db", help="Pfad zur Chroma-Datenbank"),
+    skip_existing: bool = typer.Option(
+        False, "--skip-existing", help="Überspringen falls bereits indiziert"
+    ),
     verbose: bool = typer.Option(False, "--verbose", "-v"),
 ) -> None:
     """BMF-Schreiben herunterladen, parsen und in Chroma speichern.
@@ -302,11 +399,20 @@ def ingest_bmf(
     _setup_logging(verbose)
 
     from ingest.scrapers.bmf import download_and_parse_bmf
-    from ingest.store import store_documents
+    from ingest.store import store_documents, count_existing
 
     console.rule(f"[bold]BMF-Schreiben {year}[/bold]")
 
+    if skip_existing:
+        existing = count_existing(chroma_path, "BMF", year)
+        if existing > 0:
+            console.print(
+                f"  [yellow]BMF {year} bereits vorhanden ({existing} Nodes) — übersprungen[/yellow]"
+            )
+            return
+
     from ingest.scrapers.bmf_catalog import get_active_schreiben
+
     active = get_active_schreiben(year)
     console.print(f"  Katalog: [cyan]{len(active)} aktive Schreiben[/cyan] für {year}")
 
@@ -321,10 +427,14 @@ def ingest_bmf(
         result = asyncio.run(download_and_parse_bmf(raw_dir, year))
         progress.update(t, completed=True)
 
-    console.print(f"  BMF: [green]{len(result.parent_nodes)} Abschnitte[/green] geparst")
+    console.print(
+        f"  BMF: [green]{len(result.parent_nodes)} Abschnitte[/green] geparst"
+    )
 
     if not result.parent_nodes:
-        console.print("[yellow]⚠ Keine Dokumente extrahiert — Ingest abgebrochen.[/yellow]")
+        console.print(
+            "[yellow]⚠ Keine Dokumente extrahiert — Ingest abgebrochen.[/yellow]"
+        )
         raise typer.Exit(code=1)
 
     with Progress(
@@ -375,7 +485,11 @@ def check_sources(
         try:
             resp = _httpx.head(src.url, timeout=15, follow_redirects=True)
             ok = resp.status_code < 400
-            status = f"[green]HTTP {resp.status_code}[/green]" if ok else f"[red]HTTP {resp.status_code}[/red]"
+            status = (
+                f"[green]HTTP {resp.status_code}[/green]"
+                if ok
+                else f"[red]HTTP {resp.status_code}[/red]"
+            )
             if not ok:
                 any_failed = True
         except Exception as exc:
@@ -405,7 +519,9 @@ def eval(
     chroma_path: str = typer.Option("chroma_db", help="Pfad zur Chroma-Datenbank"),
     output: str = typer.Option("", help="Optionaler Pfad für JSON-Ausgabe"),
     limit: int = typer.Option(0, help="Nur N Fragen auswerten (0 = alle)"),
-    no_automerge: bool = typer.Option(False, "--no-automerge", help="AutoMerge deaktivieren (Ablation)"),
+    no_automerge: bool = typer.Option(
+        False, "--no-automerge", help="AutoMerge deaktivieren (Ablation)"
+    ),
     label: str = typer.Option("", help="Label für den Snapshot (z.B. 'hierarchical')"),
     verbose: bool = typer.Option(False, "--verbose", "-v"),
 ) -> None:
@@ -420,6 +536,7 @@ def eval(
 
     # Change working directory so relative chroma_path and .env resolve correctly
     import os
+
     os.chdir(_BACKEND_DIR)
 
     from evaluation.eval import run_evaluation
@@ -444,9 +561,11 @@ def eval_compare(
 ) -> None:
     """Zwei Eval-Snapshots (JSON) nebeneinander vergleichen."""
     import os
+
     os.chdir(_BACKEND_DIR)
 
     from evaluation.eval import compare_snapshots
+
     compare_snapshots(snapshot_a, snapshot_b)
 
 

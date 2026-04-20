@@ -12,6 +12,7 @@ SimpleDocumentStore (parent lookup for AutoMerging):
 
 Embedding model: intfloat/multilingual-e5-large with passage/query prefix.
 """
+
 import logging
 from pathlib import Path
 
@@ -81,7 +82,9 @@ def store_documents(
     )
     if existing["ids"]:
         collection.delete(ids=existing["ids"])
-        logger.info("Deleted %d stale Chroma entries for %s %d", len(existing["ids"]), law, year)
+        logger.info(
+            "Deleted %d stale Chroma entries for %s %d", len(existing["ids"]), law, year
+        )
 
     embed_model = get_embed_model()
     vector_store = ChromaVectorStore(chroma_collection=collection)
@@ -106,13 +109,47 @@ def store_documents(
     for nid in stale_ids:
         docstore.delete_document(nid)
     if stale_ids:
-        logger.info("Removed %d stale docstore entries for %s %d", len(stale_ids), law, year)
+        logger.info(
+            "Removed %d stale docstore entries for %s %d", len(stale_ids), law, year
+        )
 
     docstore.add_documents(parsed.all_nodes)
     docstore.persist(str(ds_path))
     logger.info(
         "DocStore: %d nodes persisted for %s %d (path: %s)",
-        len(parsed.all_nodes), law, year, ds_path,
+        len(parsed.all_nodes),
+        law,
+        year,
+        ds_path,
     )
 
     return len(leaf_nodes)
+
+
+def count_existing(chroma_path: str, law: str, year: int) -> int:
+    """Return number of Chroma entries for the given (law, year). Returns 0 if index missing."""
+    client = get_chroma_client(chroma_path)
+    try:
+        collection = client.get_collection(COLLECTION_NAME)
+    except Exception:
+        return 0
+    result = collection.get(
+        where={"$and": [{"law": {"$eq": law}}, {"year": {"$eq": year}}]},
+        include=[],
+    )
+    return len(result["ids"])
+
+
+def index_summary(chroma_path: str) -> dict[tuple[str, int], int]:
+    """Return mapping of (law, year) → node count for all entries in Chroma."""
+    client = get_chroma_client(chroma_path)
+    try:
+        collection = client.get_collection(COLLECTION_NAME)
+    except Exception:
+        return {}
+    results = collection.get(include=["metadatas"])
+    counts: dict[tuple[str, int], int] = {}
+    for meta in results["metadatas"]:
+        key = (meta.get("law", "?"), int(meta.get("year", 0)))
+        counts[key] = counts.get(key, 0) + 1
+    return counts

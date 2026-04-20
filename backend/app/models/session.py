@@ -26,3 +26,7 @@ class SessionResponse(BaseModel):
 
 class SessionDetailResponse(SessionResponse):
     messages: list[MessageResponse]
+
+
+class SessionRenameRequest(BaseModel):
+    title: str

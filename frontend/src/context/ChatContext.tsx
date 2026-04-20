@@ -17,6 +17,7 @@ import {
   deleteSession as apiDeleteSession,
   fetchSessionMessages,
   fetchSessions,
+  renameSession as apiRenameSession,
 } from "@/lib/api";
 
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK !== "false";
@@ -77,6 +78,7 @@ interface ChatContextValue {
   savingEntries: SavingEntry[];
   taxYear: number;
   setTaxYear: (year: number) => void;
+  renameSession: (id: string, title: string) => void;
 }
 
 // ─── Context + hook ───────────────────────────────────────────────────────────
@@ -149,6 +151,12 @@ function MockProvider({ children }: { children: React.ReactNode }) {
     );
   }, []);
 
+  const renameSess = useCallback((id: string, title: string) => {
+    setSessions((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, title } : s)),
+    );
+  }, []);
+
   // Derive active session stats without storing back into state
   const sessionsWithStats = useMemo(
     () =>
@@ -173,6 +181,7 @@ function MockProvider({ children }: { children: React.ReactNode }) {
         selectSession,
         newSession,
         deleteSession: deleteSess,
+        renameSession: renameSess,
         totalSaving,
         savingEntries,
         taxYear,
@@ -256,6 +265,13 @@ function APIProvider({ children }: { children: React.ReactNode }) {
     [activeSessionId, resetMessages],
   );
 
+  const renameSess = useCallback(async (id: string, title: string) => {
+    await apiRenameSession(id, title).catch(() => null);
+    setSessions((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, title } : s)),
+    );
+  }, []);
+
   return (
     <ChatContext.Provider
       value={{
@@ -269,6 +285,7 @@ function APIProvider({ children }: { children: React.ReactNode }) {
         selectSession,
         newSession,
         deleteSession: deleteSess,
+        renameSession: renameSess,
         totalSaving,
         savingEntries,
         taxYear,

@@ -4,7 +4,7 @@ from datetime import datetime
 import aiosqlite
 from fastapi import APIRouter, HTTPException, Request
 
-from app.models.session import MessageResponse, SessionDetailResponse, SessionResponse
+from app.models.session import MessageResponse, SessionDetailResponse, SessionRenameRequest, SessionResponse
 
 router = APIRouter(prefix="/api", tags=["sessions"])
 
@@ -77,6 +77,38 @@ async def get_session(session_id: str, request: Request) -> SessionDetailRespons
         **_row_to_session(row).model_dump(),
         messages=[_row_to_message(m) for m in msg_rows],
     )
+
+
+@router.patch("/sessions/{session_id}", response_model=SessionResponse)
+async def rename_session(
+    session_id: str, body: SessionRenameRequest, request: Request
+) -> SessionResponse:
+    """Update the title of a session."""
+    title = body.title.strip()
+    if not title:
+        raise HTTPException(status_code=422, detail="Title must not be empty")
+
+    db = _db(request)
+    now = datetime.utcnow().isoformat()
+
+    async with db.execute(
+        "SELECT id FROM sessions WHERE id = ?", (session_id,)
+    ) as cursor:
+        if await cursor.fetchone() is None:
+            raise HTTPException(status_code=404, detail="Session not found")
+
+    await db.execute(
+        "UPDATE sessions SET title = ?, updated_at = ? WHERE id = ?",
+        (title, now, session_id),
+    )
+    await db.commit()
+
+    async with db.execute(
+        "SELECT * FROM sessions WHERE id = ?", (session_id,)
+    ) as cursor:
+        row = await cursor.fetchone()
+
+    return _row_to_session(row)
 
 
 @router.delete("/sessions/{session_id}", status_code=204)

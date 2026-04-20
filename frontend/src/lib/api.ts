@@ -121,6 +121,15 @@ export async function fetchSessionMessages(
   return data.messages.map(mapMessage);
 }
 
+export async function renameSession(sessionId: string, title: string): Promise<void> {
+  const res = await fetch(`${API_URL}/api/sessions/${sessionId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ title }),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+}
+
 export async function deleteSession(sessionId: string): Promise<void> {
   const res = await fetch(`${API_URL}/api/sessions/${sessionId}`, {
     method: "DELETE",

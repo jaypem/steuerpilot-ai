@@ -1,7 +1,61 @@
 "use client";
 
+import { useState, useRef, useEffect } from "react";
 import { useChatContext } from "@/context/ChatContext";
 import { formatRelativeDate } from "@/lib/mockSessions";
+
+function SessionTitle({
+  id,
+  title,
+  isActive,
+}: {
+  id: string;
+  title: string;
+  isActive: boolean;
+}) {
+  const { renameSession } = useChatContext();
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(title);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editing) inputRef.current?.select();
+  }, [editing]);
+
+  function commit() {
+    const trimmed = draft.trim();
+    if (trimmed && trimmed !== title) renameSession(id, trimmed);
+    else setDraft(title);
+    setEditing(false);
+  }
+
+  if (editing) {
+    return (
+      <input
+        ref={inputRef}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") commit();
+          if (e.key === "Escape") { setDraft(title); setEditing(false); }
+        }}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full truncate rounded bg-transparent text-sm outline outline-1 outline-accent px-0.5 -mx-0.5"
+      />
+    );
+  }
+
+  return (
+    <span
+      className="truncate text-sm flex-1"
+      onDoubleClick={(e) => { e.stopPropagation(); setDraft(title); setEditing(true); }}
+      title="Doppelklick zum Umbenennen"
+    >
+      {title}
+    </span>
+  );
+}
 
 export default function SessionSidebar() {
   const { sessions, activeSessionId, selectSession, newSession } =
@@ -62,7 +116,7 @@ export default function SessionSidebar() {
                       : "text-sidebar-text hover:bg-sidebar-item hover:text-sidebar-text-active"
                   }`}
                 >
-                  <span className="truncate text-sm">{session.title}</span>
+                  <SessionTitle id={session.id} title={session.title} isActive={isActive} />
                   <div className="mt-0.5 flex items-center justify-between gap-2">
                     <span className="text-xs opacity-60">
                       {formatRelativeDate(session.createdAt)}

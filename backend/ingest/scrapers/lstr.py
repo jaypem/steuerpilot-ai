@@ -7,7 +7,7 @@ Technischer Ablauf:
   3. page.extract_text() rekonstruiert den Fließtext aus PDF-Text-Objekten
      (jedes Zeichen hat x/y-Koordinaten — pdfplumber sortiert nach Position)
   4. Volltext aller Seiten zu einem String zusammenführen
-  5. Auf Randnummern-Muster splitten: "R \d+(\.\d+)*" steht am Zeilenanfang
+  5. Auf Randnummern-Muster splitten: "R \\d+(\\.\\d+)*" steht am Zeilenanfang
      und markiert jeden LStR-Abschnitt (z.B. "R 19.3", "R 40")
   6. Jeden Abschnitt als eigenes LlamaIndex Document speichern
 

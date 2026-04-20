@@ -47,6 +47,11 @@ class SavingChunk(BaseModel):
     amount: int
 
 
+class StatusChunk(BaseModel):
+    type: Literal["status"] = "status"
+    label: str
+
+
 class DoneChunk(BaseModel):
     type: Literal["done"] = "done"
 
@@ -58,5 +63,11 @@ class ErrorChunk(BaseModel):
 
 # Union used in type hints for documentation / future typed dispatch
 StreamChunk = (
-    TextChunk | SourceChunk | RiskBadgeChunk | SavingChunk | DoneChunk | ErrorChunk
+    TextChunk
+    | SourceChunk
+    | RiskBadgeChunk
+    | SavingChunk
+    | StatusChunk
+    | DoneChunk
+    | ErrorChunk
 )

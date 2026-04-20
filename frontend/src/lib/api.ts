@@ -31,6 +31,7 @@ export type StreamChunk =
       explanation: string;
     }
   | { type: "saving"; amount: number }
+  | { type: "status"; label: string }
   | { type: "done" }
   | { type: "error"; message: string };
 

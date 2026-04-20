@@ -8,6 +8,7 @@ before 'steuerpilot ingest' has been executed).
 The response stream is processed by ResponseStreamProcessor which separates
 visible text from the trailing ===STEUERPILOT_META=== metadata block.
 """
+
 import logging
 import re
 from collections.abc import AsyncGenerator
@@ -27,6 +28,7 @@ from app.models.chat import (
     RiskBadgeChunk,
     SavingChunk,
     SourceChunk,
+    StatusChunk,
     StreamChunk,
     TextChunk,
 )
@@ -150,9 +152,7 @@ class ResponseStreamProcessor:
 # ─── History loader ───────────────────────────────────────────────────────────
 
 
-async def _load_history(
-    db: aiosqlite.Connection, session_id: str
-) -> list[ChatMessage]:
+async def _load_history(db: aiosqlite.Connection, session_id: str) -> list[ChatMessage]:
     async with db.execute(
         "SELECT role, content FROM messages WHERE session_id = ? ORDER BY created_at ASC",
         (session_id,),
@@ -245,6 +245,7 @@ async def stream_chat_response(
       extract metadata → emit SSE events.
     """
     try:
+        yield _sse(StatusChunk(label="Gesprächsverlauf wird geladen…"))
         history = await _load_history(db, session_id)
         memory = ChatMemoryBuffer.from_defaults(
             chat_history=history,
@@ -253,7 +254,10 @@ async def stream_chat_response(
         engine = _build_engine(memory, tax_year)
         processor = ResponseStreamProcessor()
 
+        yield _sse(StatusChunk(label="Relevante Paragraphen werden gesucht…"))
         streaming_response = await engine.astream_chat(message)
+
+        yield _sse(StatusChunk(label="Antwort wird generiert…"))
         async for token in streaming_response.async_response_gen():
             text = processor.feed(token)
             if text:

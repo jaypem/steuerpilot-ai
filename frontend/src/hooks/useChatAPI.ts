@@ -66,11 +66,19 @@ export function useChatAPI({ sessionId, taxYear, onDone }: UseChatAPIOptions = {
           abortRef.current.signal,
         )) {
           switch (chunk.type) {
+            case "status":
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === assistantId ? { ...m, statusLabel: chunk.label } : m,
+                ),
+              );
+              break;
+
             case "text":
               setMessages((prev) =>
                 prev.map((m) =>
                   m.id === assistantId
-                    ? { ...m, content: m.content + chunk.content }
+                    ? { ...m, statusLabel: undefined, content: m.content + chunk.content }
                     : m,
                 ),
               );

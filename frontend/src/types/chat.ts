@@ -23,4 +23,5 @@ export interface Message {
   savingAmount?: number; // geschätzte Steuerersparnis in €
   timestamp: Date;
   isStreaming?: boolean;
+  statusLabel?: string;
 }

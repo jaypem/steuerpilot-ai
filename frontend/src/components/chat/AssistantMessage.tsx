@@ -87,10 +87,15 @@ export default function AssistantMessage({ message }: AssistantMessageProps) {
         {/* Bubble */}
         <div className="rounded-2xl rounded-tl-sm border border-border bg-surface-raised px-4 py-3 shadow-sm">
           {isWaiting ? (
-            <span className="flex items-center gap-1.5 py-0.5">
-              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted [animation-delay:-0.3s]" />
-              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted [animation-delay:-0.15s]" />
-              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted" />
+            <span className="flex items-center gap-2 py-0.5 text-xs text-muted">
+              <span className="flex gap-1">
+                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted [animation-delay:-0.3s]" />
+                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted [animation-delay:-0.15s]" />
+                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted" />
+              </span>
+              {message.statusLabel && (
+                <span className="animate-pulse">{message.statusLabel}</span>
+              )}
             </span>
           ) : (
             <Markdown remarkPlugins={[remarkGfm]} components={mdComponents}>

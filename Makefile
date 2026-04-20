@@ -67,7 +67,7 @@ local.ingest: ## Build the core knowledge base — EStG, AO, UStG (YEAR=2025)
 
 local.ingest-full: ## Build the full knowledge base — all 6 laws (YEAR=2025)
 	@cd backend && $(UV) run python -m ingest.cli ingest \
-		--laws EStG EStDV AO UStG SolzG GewStG \
+		--laws EStG --laws EStDV --laws AO --laws UStG --laws SolzG --laws GewStG \
 		--year $(or $(YEAR),2025)
 
 local.ingest-lstr: ## Download and ingest LStR PDF (YEAR=2023)

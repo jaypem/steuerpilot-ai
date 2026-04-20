@@ -1,0 +1,53 @@
+# =============================================================================
+# CODEOWNERS
+#
+# Defines who is automatically requested for review when files they own
+# are changed in a pull request.
+#
+# Syntax:  <pattern>  <@user-or-team> [<@user-or-team> ...]
+#
+# Bitbucket: https://support.atlassian.com/bitbucket-cloud/docs/set-up-and-use-code-owners/
+# GitHub:    https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+#
+# Rules:
+# - Last matching pattern takes precedence (like .gitignore).
+# - Use @workspace/team-name for Bitbucket teams.
+# - A PR cannot be merged without approval from all matching owners
+#   (when branch protection is enabled).
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# Global — fallback owners for everything not matched below
+# ---------------------------------------------------------------------------
+*                           @YOUR_WORKSPACE/your-team
+
+# ---------------------------------------------------------------------------
+# Infrastructure / CI/CD — requires platform team review
+# ---------------------------------------------------------------------------
+Dockerfile                  @YOUR_WORKSPACE/platform-team
+docker-compose.yml          @YOUR_WORKSPACE/platform-team
+bitbucket-pipelines.yml     @YOUR_WORKSPACE/platform-team
+Makefile                    @YOUR_WORKSPACE/platform-team
+infra/                      @YOUR_WORKSPACE/platform-team
+
+# ---------------------------------------------------------------------------
+# Security-sensitive files
+# ---------------------------------------------------------------------------
+SECURITY.md                 @YOUR_WORKSPACE/security-team
+.env.example                @YOUR_WORKSPACE/security-team
+
+# ---------------------------------------------------------------------------
+# API / backend
+# ---------------------------------------------------------------------------
+src/api/                    @YOUR_WORKSPACE/backend-team
+
+# ---------------------------------------------------------------------------
+# Frontend
+# ---------------------------------------------------------------------------
+# src/web/                  @YOUR_WORKSPACE/frontend-team
+
+# ---------------------------------------------------------------------------
+# Documentation
+# ---------------------------------------------------------------------------
+docs/                       @YOUR_WORKSPACE/your-team
+*.md                        @YOUR_WORKSPACE/your-team

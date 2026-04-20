@@ -6,10 +6,11 @@ import { streamChat } from "@/lib/api";
 
 interface UseChatAPIOptions {
   sessionId?: string;
+  taxYear?: number;
   onDone?: () => void;
 }
 
-export function useChatAPI({ sessionId, onDone }: UseChatAPIOptions = {}) {
+export function useChatAPI({ sessionId, taxYear, onDone }: UseChatAPIOptions = {}) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -61,7 +62,7 @@ export function useChatAPI({ sessionId, onDone }: UseChatAPIOptions = {}) {
         abortRef.current = new AbortController();
 
         for await (const chunk of streamChat(
-          { message: text, session_id: sessionId },
+          { message: text, session_id: sessionId, tax_year: taxYear },
           abortRef.current.signal,
         )) {
           switch (chunk.type) {
@@ -133,7 +134,7 @@ export function useChatAPI({ sessionId, onDone }: UseChatAPIOptions = {}) {
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [isLoading, sessionId],
+    [isLoading, sessionId, taxYear],
   );
 
   return { messages, isLoading, submitMessage, errorMessage, resetMessages };

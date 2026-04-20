@@ -75,6 +75,8 @@ interface ChatContextValue {
   deleteSession: (id: string) => void;
   totalSaving: number;
   savingEntries: SavingEntry[];
+  taxYear: number;
+  setTaxYear: (year: number) => void;
 }
 
 // ─── Context + hook ───────────────────────────────────────────────────────────
@@ -119,6 +121,7 @@ function MockProvider({ children }: { children: React.ReactNode }) {
   );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const clearError = useCallback(() => setErrorMessage(null), []);
+  const [taxYear, setTaxYear] = useState(2025);
 
   const { messages, isLoading, submitMessage } = useMockChat({
     initialMessages: INITIAL_MESSAGES,
@@ -172,6 +175,8 @@ function MockProvider({ children }: { children: React.ReactNode }) {
         deleteSession: deleteSess,
         totalSaving,
         savingEntries,
+        taxYear,
+        setTaxYear,
       }}
     >
       {children}
@@ -187,6 +192,7 @@ function APIProvider({ children }: { children: React.ReactNode }) {
     () => crypto.randomUUID(),
   );
   const [extraError, setExtraError] = useState<string | null>(null);
+  const [taxYear, setTaxYear] = useState(2025);
 
   const refreshSessions = useCallback(() => {
     fetchSessions()
@@ -209,7 +215,7 @@ function APIProvider({ children }: { children: React.ReactNode }) {
     submitMessage,
     errorMessage: apiError,
     resetMessages,
-  } = useChatAPI({ sessionId: activeSessionId, onDone: refreshSessions });
+  } = useChatAPI({ sessionId: activeSessionId, taxYear, onDone: refreshSessions });
 
   const errorMessage = apiError ?? extraError;
   const clearError = useCallback(() => {
@@ -265,6 +271,8 @@ function APIProvider({ children }: { children: React.ReactNode }) {
         deleteSession: deleteSess,
         totalSaving,
         savingEntries,
+        taxYear,
+        setTaxYear,
       }}
     >
       {children}

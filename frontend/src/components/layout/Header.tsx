@@ -2,6 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useChatContext } from "@/context/ChatContext";
+
+const TAX_YEARS = [2022, 2023, 2024, 2025];
 
 interface HeaderProps {
   onToggleSessionSidebar: () => void;
@@ -13,6 +16,7 @@ export default function Header({
   onToggleSparSidebar,
 }: HeaderProps) {
   const pathname = usePathname();
+  const { taxYear, setTaxYear } = useChatContext();
 
   return (
     <header className="flex h-12 shrink-0 items-center justify-between border-b border-border bg-surface-raised px-4">
@@ -35,9 +39,16 @@ export default function Header({
           <span className="font-mono text-sm font-semibold tracking-tight text-foreground">
             steuerpilot
           </span>
-          <span className="rounded-full bg-accent-subtle px-2 py-0.5 font-mono text-xs font-medium text-accent">
-            2025
-          </span>
+          <select
+            value={taxYear}
+            onChange={(e) => setTaxYear(Number(e.target.value))}
+            aria-label="Steuerjahr auswählen"
+            className="rounded-full bg-accent-subtle px-2 py-0.5 font-mono text-xs font-medium text-accent cursor-pointer border-none outline-none appearance-none"
+          >
+            {TAX_YEARS.map((y) => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
         </div>
 
         {/* Desktop nav */}

@@ -5,7 +5,7 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
-    env_file: .env
+    env_file: ./backend/.env
     volumes:
       - chroma_db:/app/chroma_db
       - sqlite_db:/app/steuerpilot.db

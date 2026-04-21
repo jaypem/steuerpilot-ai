@@ -13,11 +13,16 @@ import logging
 import re
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 import aiosqlite
 from llama_index.core.chat_engine import ContextChatEngine, SimpleChatEngine
 from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core.memory import ChatMemoryBuffer
+
+if TYPE_CHECKING:
+    from app.config import Settings
+    from app.retriever import HybridRetriever
 
 from app.config import get_settings
 from app.index import get_index, has_indexed_data
@@ -167,6 +172,34 @@ async def _load_history(db: aiosqlite.Connection, session_id: str) -> list[ChatM
     ]
 
 
+# ─── Retriever cache ─────────────────────────────────────────────────────────
+
+_retriever_cache: dict[tuple, "HybridRetriever"] = {}
+
+
+def _get_retriever(settings: "Settings", tax_year: int) -> "HybridRetriever":
+    """Return a cached HybridRetriever — rebuilding it is expensive (3000+ BM25 nodes)."""
+    from app.retriever import HybridRetriever
+    import chromadb
+    from ingest.store import COLLECTION_NAME
+
+    cache_key = (settings.chroma_path, tax_year, settings.rag_top_n, settings.rag_chunk_max_chars)
+    if cache_key not in _retriever_cache:
+        client = chromadb.PersistentClient(path=settings.chroma_path)
+        collection = client.get_or_create_collection(COLLECTION_NAME)
+        index = get_index(settings.chroma_path)
+        _retriever_cache[cache_key] = HybridRetriever(
+            index=index,
+            chroma_collection=collection,
+            year=tax_year,
+            chroma_path=settings.chroma_path,
+            rerank_top_n=settings.rag_top_n,
+            chunk_max_chars=settings.rag_chunk_max_chars,
+        )
+        logger.info("HybridRetriever built and cached for year %d", tax_year)
+    return _retriever_cache[cache_key]
+
+
 # ─── Engine factory ───────────────────────────────────────────────────────────
 
 
@@ -182,22 +215,7 @@ def _build_engine(
     llm = get_llm()
 
     if has_indexed_data(settings.chroma_path):
-        import chromadb
-        from ingest.store import COLLECTION_NAME
-        from app.retriever import HybridRetriever
-
-        client = chromadb.PersistentClient(path=settings.chroma_path)
-        collection = client.get_or_create_collection(COLLECTION_NAME)
-        index = get_index(settings.chroma_path)
-
-        retriever = HybridRetriever(
-            index=index,
-            chroma_collection=collection,
-            year=tax_year,
-            chroma_path=settings.chroma_path,
-            rerank_top_n=settings.rag_top_n,
-            chunk_max_chars=settings.rag_chunk_max_chars,
-        )
+        retriever = _get_retriever(settings, tax_year)
         logger.info("Using ContextChatEngine (RAG) for year %d", tax_year)
         return ContextChatEngine.from_defaults(
             retriever=retriever,

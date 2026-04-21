@@ -183,7 +183,7 @@ def _get_retriever(settings: "Settings", tax_year: int) -> "HybridRetriever":
     import chromadb
     from ingest.store import COLLECTION_NAME
 
-    cache_key = (settings.chroma_path, tax_year, settings.rag_top_n, settings.rag_chunk_max_chars)
+    cache_key = (settings.chroma_path, tax_year, settings.rag_top_n, settings.rag_chunk_max_chars, settings.hyde_enabled)
     if cache_key not in _retriever_cache:
         client = chromadb.PersistentClient(path=settings.chroma_path)
         collection = client.get_or_create_collection(COLLECTION_NAME)
@@ -195,6 +195,7 @@ def _get_retriever(settings: "Settings", tax_year: int) -> "HybridRetriever":
             chroma_path=settings.chroma_path,
             rerank_top_n=settings.rag_top_n,
             chunk_max_chars=settings.rag_chunk_max_chars,
+            use_hyde=settings.hyde_enabled,
         )
         logger.info("HybridRetriever built and cached for year %d", tax_year)
     return _retriever_cache[cache_key]

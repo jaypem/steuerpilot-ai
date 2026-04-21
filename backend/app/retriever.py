@@ -81,12 +81,14 @@ class HybridRetriever(BaseRetriever):
         automerge: bool = True,
         rerank_top_n: int = 5,
         chunk_max_chars: int = 0,
+        use_hyde: bool = False,
     ) -> None:
         self._year = year
         self._chroma_collection = chroma_collection
         self._automerge = automerge
         self._rerank_top_n = rerank_top_n
         self._chunk_max_chars = chunk_max_chars
+        self._use_hyde = use_hyde
 
         # Dense retriever with year metadata filter
         self._dense = index.as_retriever(
@@ -173,6 +175,11 @@ class HybridRetriever(BaseRetriever):
         return merged
 
     async def _aretrieve(self, query_bundle: QueryBundle) -> list[NodeWithScore]:
+        if self._use_hyde:
+            from app.hyde import expand_query
+            from app.llm import get_llm
+            expanded = await expand_query(query_bundle.query_str, get_llm())
+            query_bundle = QueryBundle(query_str=expanded)
         return self._retrieve(query_bundle)
 
     # ── Internal helpers ──────────────────────────────────────────────────────

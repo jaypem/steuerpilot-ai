@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { ChatProvider } from "@/context/ChatContext";
 import Header from "./Header";
 import SessionSidebar from "./SessionSidebar";
 import SparSidebar from "./SparSidebar";
@@ -16,7 +15,7 @@ export default function AppShell({ children }: AppShellProps) {
   const [sparSidebarOpen, setSparSidebarOpen] = useState(false);
 
   return (
-    <ChatProvider>
+    <>
       <div className="flex h-full overflow-hidden">
         {/* ── Mobile Overlay ─────────────────────────────────────── */}
         {(sessionSidebarOpen || sparSidebarOpen) && (
@@ -65,6 +64,6 @@ export default function AppShell({ children }: AppShellProps) {
       </div>
 
       <ErrorToast />
-    </ChatProvider>
+    </>
   );
 }

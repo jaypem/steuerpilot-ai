@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { ChatProvider } from "@/context/ChatContext";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -27,7 +28,9 @@ export default function RootLayout({
       lang="de"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="h-full bg-surface text-foreground">{children}</body>
+      <body className="h-full bg-surface text-foreground">
+        <ChatProvider>{children}</ChatProvider>
+      </body>
     </html>
   );
 }

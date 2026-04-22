@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useChatContext } from "@/context/ChatContext";
 import { scanExpenses } from "@/lib/api";
 import type { ScanExpenseItem, ScanResult, ScannedExpense } from "@/types/scan";
 
@@ -152,6 +153,7 @@ function newId() {
 }
 
 export default function ScanPage() {
+  const { taxYear } = useChatContext();
   const [items, setItems] = useState<ScanExpenseItem[]>([
     { id: newId(), description: "", amount: "" },
   ]);
@@ -193,7 +195,7 @@ export default function ScanPage() {
 
     setIsLoading(true);
     try {
-      const data = await scanExpenses(validExpenses, context || undefined);
+      const data = await scanExpenses(validExpenses, context || undefined, taxYear);
       setResult(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unbekannter Fehler");
@@ -219,7 +221,7 @@ export default function ScanPage() {
         <span className="text-border">·</span>
         <h1 className="text-sm font-semibold text-foreground">Ausgaben-Scan</h1>
         <span className="rounded-full bg-accent-subtle px-2 py-0.5 font-mono text-xs font-medium text-accent">
-          2025
+          {taxYear}
         </span>
       </header>
 

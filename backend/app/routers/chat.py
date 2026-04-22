@@ -123,7 +123,12 @@ async def _tracked_stream(
     risk: RiskBadgeChunk | None = None
     saving: SavingChunk | None = None
 
-    async for raw_sse in stream_chat_response(request.message, session_id, db):
+    async for raw_sse in stream_chat_response(
+        request.message,
+        session_id,
+        db,
+        request.tax_year,
+    ):
         yield raw_sse
 
         # Parse the emitted chunk to track metadata (no additional LLM calls)

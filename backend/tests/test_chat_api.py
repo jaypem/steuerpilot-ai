@@ -267,6 +267,28 @@ async def test_chat_sse_meta_chunks_present(api_client, mock_stream_with_meta):
 
 
 @pytest.mark.asyncio
+async def test_chat_forwards_tax_year(api_client):
+    seen: list[int] = []
+
+    async def _gen(message, session_id, db, tax_year=2025):
+        seen.append(tax_year)
+        yield f"data: {DoneChunk().model_dump_json()}\n\n"
+
+    with patch("app.routers.chat.stream_chat_response", side_effect=_gen):
+        resp = await api_client.post(
+            "/api/chat",
+            json={
+                "message": "Homeoffice",
+                "session_id": "sess-tax-year",
+                "tax_year": 2024,
+            },
+        )
+
+    assert resp.status_code == 200
+    assert seen == [2024]
+
+
+@pytest.mark.asyncio
 async def test_chat_requires_message(api_client):
     resp = await api_client.post("/api/chat", json={"message": ""})
     # Empty message violates min_length=1 constraint → 422

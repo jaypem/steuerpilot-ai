@@ -31,8 +31,10 @@ steuerpilot = "ingest.cli:app"
 
 [dependency-groups]
 dev = [
+    "mypy>=1.10",
     "pytest>=8.0",
     "pytest-asyncio>=0.24",
+    "ruff>=0.5",
 ]
 eval = [
     "datasets>=3.0",

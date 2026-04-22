@@ -5,7 +5,7 @@ Pipeline per query:
   1. Dense retrieval via Chroma (multilingual-e5-large), top-30, year-filter
   2. BM25 retrieval over in-memory corpus for the same year, top-20
   3. Deduplicate by node_id
-  4. Cross-encoder re-ranking (ms-marco-MiniLM-L-6-v2), top-8
+  4. Cross-encoder re-ranking (ms-marco-MiniLM-L-6-v2), top-5 by default
   5. AutoMerge: child nodes → parent paragraph when ≥ MERGE_THRESHOLD
      children of the same § appear in the result set
   6. Reference resolution (app/reference_resolver.py)
@@ -37,6 +37,7 @@ logger = logging.getLogger(__name__)
 
 DENSE_TOP_K = 30  # mehr Kandidaten für den Cross-Encoder → besserer Recall
 BM25_TOP_K = 20
+RERANK_TOP_N = 5
 MERGE_THRESHOLD = 3  # min. Child-Treffer eines § um zum Parent zusammenzuführen
 
 
@@ -79,7 +80,7 @@ class HybridRetriever(BaseRetriever):
         year: int,
         chroma_path: str = "",
         automerge: bool = True,
-        rerank_top_n: int = 5,
+        rerank_top_n: int = RERANK_TOP_N,
         chunk_max_chars: int = 0,
         use_hyde: bool = False,
     ) -> None:

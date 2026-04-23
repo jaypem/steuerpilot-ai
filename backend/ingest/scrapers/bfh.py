@@ -33,6 +33,7 @@ from pathlib import Path
 
 import httpx
 from llama_index.core import Document
+from llama_index.core.schema import BaseNode
 
 from ingest.parser import ParsedLaw
 from ingest.scrapers.bfh_catalog import BfhUrteil, get_active_urteile
@@ -198,7 +199,7 @@ def _fallback_text_split(full_text: str) -> list[tuple[str, str]]:
 
 def _parse_html(
     html_bytes: bytes, urteil: BfhUrteil, year: int
-) -> list[Document]:
+) -> list[BaseNode]:
     from bs4 import BeautifulSoup  # lazy import
 
     soup = BeautifulSoup(html_bytes, "html.parser")
@@ -240,8 +241,8 @@ def _build_documents(
     sections: list[tuple[str, str]],
     urteil: BfhUrteil,
     year: int,
-) -> list[Document]:
-    documents: list[Document] = []
+) -> list[BaseNode]:
+    documents: list[BaseNode] = []
     for section_label, body in sections:
         header_lines = [
             f"BFH-Urteil {urteil.datum}",
@@ -288,7 +289,7 @@ async def _download_one(
     dest_dir: Path,
     year: int,
     client: httpx.AsyncClient,
-) -> list[Document]:
+) -> list[BaseNode]:
     """
     Download and parse a single BFH ruling.
     Returns empty list on any failure (download error, parse error, empty result).
@@ -356,7 +357,7 @@ async def download_and_parse_bfh(dest_dir: Path, year: int) -> ParsedLaw:
     urteile = get_active_urteile(year)
     logger.info("BFH: %d aktive Urteile für Steuerjahr %d", len(urteile), year)
 
-    all_documents: list[Document] = []
+    all_documents: list[BaseNode] = []
     failed: list[str] = []
 
     async with httpx.AsyncClient(

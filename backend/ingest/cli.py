@@ -11,9 +11,12 @@ Commands:
 
 import asyncio
 import logging
+from collections.abc import Sequence
 from pathlib import Path
+from typing import cast
 
 import typer
+from chromadb.api.types import QueryResult, Where
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
@@ -202,12 +205,17 @@ def search(
 
     embed_model = get_embed_model()
     query_embedding = embed_model.get_query_embedding(query)
+    query_embeddings: list[Sequence[float]] = [query_embedding]
+    where = cast(Where, {"year": {"$eq": year}})
 
-    results = collection.query(
-        query_embeddings=[query_embedding],
-        n_results=top_k,
-        where={"year": {"$eq": year}},
-        include=["documents", "metadatas", "distances"],
+    results = cast(
+        QueryResult,
+        collection.query(
+            query_embeddings=query_embeddings,
+            n_results=top_k,
+            where=where,
+            include=["documents", "metadatas", "distances"],
+        ),
     )
 
     table = Table(title=f'Suchergebnisse: "{query}" ({year})', show_lines=True)
@@ -216,16 +224,18 @@ def search(
     table.add_column("Score", justify="right")
     table.add_column("Text (Auszug)")
 
-    docs = results["documents"][0]
-    metas = results["metadatas"][0]
-    dists = results["distances"][0]
+    docs = (results["documents"] or [[]])[0]
+    metas = (results["metadatas"] or [[]])[0]
+    dists = (results["distances"] or [[]])[0]
 
     for doc, meta, dist in zip(docs, metas, dists):
         score = round(1 - dist, 3)  # cosine distance → similarity
         snippet = (doc or "")[:120].replace("\n", " ") + "…"
+        paragraph_value = meta.get("paragraph", "")
+        law_value = meta.get("law", "")
         table.add_row(
-            meta.get("paragraph", ""),
-            meta.get("law", ""),
+            paragraph_value if isinstance(paragraph_value, str) else "",
+            law_value if isinstance(law_value, str) else "",
             str(score),
             snippet,
         )

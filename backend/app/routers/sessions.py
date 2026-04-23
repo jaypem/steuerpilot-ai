@@ -108,6 +108,9 @@ async def rename_session(
     ) as cursor:
         row = await cursor.fetchone()
 
+    if row is None:
+        raise HTTPException(status_code=404, detail="Session not found")
+
     return _row_to_session(row)
 
 

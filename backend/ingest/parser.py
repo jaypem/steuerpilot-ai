@@ -20,7 +20,7 @@ XML structure (gesetze-im-internet.de DTD 1.01):
 
 Returned hierarchy (ParsedLaw):
   parent_node  — full paragraph text (§ 4 EStG complete)
-  child_nodes  — one TextNode per <P> / Absatz
+  child_nodes  — one node per <P> / Absatz
 
 Metadata per node:
   law        — e.g. "EStG"
@@ -37,7 +37,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from bs4 import BeautifulSoup
-from llama_index.core.schema import NodeRelationship, RelatedNodeInfo, TextNode
+from llama_index.core.schema import (
+    BaseNode,
+    NodeRelationship,
+    RelatedNodeInfo,
+    TextNode,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -60,11 +65,11 @@ _ABS_RE  = re.compile(r"^\((\d+[a-z]?)\)")  # "(1)" "(4a)" at start of <P> text
 @dataclass
 class ParsedLaw:
     """Two-level hierarchy for one law-year ingest run."""
-    parent_nodes: list[TextNode] = field(default_factory=list)
-    child_nodes:  list[TextNode] = field(default_factory=list)
+    parent_nodes: list[BaseNode] = field(default_factory=list)
+    child_nodes: list[BaseNode] = field(default_factory=list)
 
     @property
-    def all_nodes(self) -> list[TextNode]:
+    def all_nodes(self) -> list[BaseNode]:
         return self.parent_nodes + self.child_nodes
 
 

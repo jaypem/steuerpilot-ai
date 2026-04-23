@@ -47,3 +47,14 @@ eval = [
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+
+[[tool.mypy.overrides]]
+module = [
+    "datasets",
+    "langchain_anthropic",
+    "langchain_huggingface",
+    "langchain_ollama",
+    "ragas",
+    "ragas.*",
+]
+ignore_missing_imports = true

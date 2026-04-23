@@ -29,6 +29,7 @@ from pathlib import Path
 
 import httpx
 from llama_index.core import Document
+from llama_index.core.schema import BaseNode
 
 from ingest.parser import ParsedLaw
 from ingest.scrapers.bmf_catalog import BmfSchreiben, get_active_schreiben
@@ -39,14 +40,10 @@ logger = logging.getLogger(__name__)
 _MIN_CHUNK_CHARS = 120
 
 # Roman-numeral section header at line start, e.g. "I. Allgemeines" / "IV. Sonderregeln"
-_ABSCHNITT_RE = re.compile(
-    r"(?m)^(I{1,3}V?|VI{0,3}|IX|XI{0,3}|X)\.\s+(.+)"
-)
+_ABSCHNITT_RE = re.compile(r"(?m)^(I{1,3}V?|VI{0,3}|IX|XI{0,3}|X)\.\s+(.+)")
 
 # Randnummer pattern: "Rn. 5", "Rn. 5 – 10", "Rz. 5"
-_RANDNR_RE = re.compile(
-    r"(?m)^((?:Rn|Rz)\.\s*\d+(?:\s*[-–]\s*\d+)?)\s*\n?"
-)
+_RANDNR_RE = re.compile(r"(?m)^((?:Rn|Rz)\.\s*\d+(?:\s*[-–]\s*\d+)?)\s*\n?")
 
 
 # ─── Text splitting ───────────────────────────────────────────────────────────
@@ -82,7 +79,9 @@ def _split_text(full_text: str) -> list[tuple[str, str]]:
         for i, m in enumerate(matches_rn):
             label = m.group(1).strip()
             start = m.end()
-            end = matches_rn[i + 1].start() if i + 1 < len(matches_rn) else len(full_text)
+            end = (
+                matches_rn[i + 1].start() if i + 1 < len(matches_rn) else len(full_text)
+            )
             body = full_text[start:end].strip()
             if len(body) >= _MIN_CHUNK_CHARS:
                 parts.append((label, body))
@@ -99,7 +98,7 @@ def _split_text(full_text: str) -> list[tuple[str, str]]:
 # ─── Format-specific parsers ──────────────────────────────────────────────────
 
 
-def _parse_pdf(pdf_bytes: bytes, schreiben: BmfSchreiben, year: int) -> list[Document]:
+def _parse_pdf(pdf_bytes: bytes, schreiben: BmfSchreiben, year: int) -> list[BaseNode]:
     import pdfplumber  # lazy import
 
     pages: list[str] = []
@@ -116,7 +115,9 @@ def _parse_pdf(pdf_bytes: bytes, schreiben: BmfSchreiben, year: int) -> list[Doc
     return _build_documents(sections, schreiben, year)
 
 
-def _parse_html(html_bytes: bytes, schreiben: BmfSchreiben, year: int) -> list[Document]:
+def _parse_html(
+    html_bytes: bytes, schreiben: BmfSchreiben, year: int
+) -> list[BaseNode]:
     from bs4 import BeautifulSoup  # lazy import
 
     soup = BeautifulSoup(html_bytes, "html.parser")
@@ -144,8 +145,8 @@ def _build_documents(
     sections: list[tuple[str, str]],
     schreiben: BmfSchreiben,
     year: int,
-) -> list[Document]:
-    documents: list[Document] = []
+) -> list[BaseNode]:
+    documents: list[BaseNode] = []
     for section_label, body in sections:
         header = f"BMF-Schreiben {schreiben.datum}\nAktenzeichen: {schreiben.aktenzeichen}\n{schreiben.betreff}"
         if section_label:
@@ -176,7 +177,7 @@ async def _download_one(
     dest_dir: Path,
     year: int,
     client: httpx.AsyncClient,
-) -> list[Document]:
+) -> list[BaseNode]:
     """
     Download and parse a single BMF-Schreiben.
     Returns empty list on any failure (download error, parse error, empty result).
@@ -192,7 +193,9 @@ async def _download_one(
                 return _parse_pdf(raw, schreiben, year)
             return _parse_html(raw, schreiben, year)
         except Exception as exc:
-            logger.warning("BMF %s: Parse-Fehler aus Cache (%s) — übersprungen.", schreiben.id, exc)
+            logger.warning(
+                "BMF %s: Parse-Fehler aus Cache (%s) — übersprungen.", schreiben.id, exc
+            )
             return []
 
     # ── Download ──────────────────────────────────────────────────────────────
@@ -203,11 +206,15 @@ async def _download_one(
     except httpx.HTTPStatusError as exc:
         logger.warning(
             "BMF %s: HTTP %s — übersprungen. (URL ggf. veraltet: %s)",
-            schreiben.id, exc.response.status_code, schreiben.url,
+            schreiben.id,
+            exc.response.status_code,
+            schreiben.url,
         )
         return []
     except httpx.RequestError as exc:
-        logger.warning("BMF %s: Verbindungsfehler (%s) — übersprungen.", schreiben.id, exc)
+        logger.warning(
+            "BMF %s: Verbindungsfehler (%s) — übersprungen.", schreiben.id, exc
+        )
         return []
 
     raw = response.content
@@ -225,7 +232,8 @@ async def _download_one(
         else:
             logger.warning(
                 "BMF %s: Unbekannter Content-Type '%s' — übersprungen.",
-                schreiben.id, content_type,
+                schreiben.id,
+                content_type,
             )
             return []
     except Exception as exc:
@@ -252,13 +260,15 @@ async def download_and_parse_bmf(dest_dir: Path, year: int) -> ParsedLaw:
     schreiben_list = get_active_schreiben(year)
     logger.info("BMF: %d aktive Schreiben für Steuerjahr %d", len(schreiben_list), year)
 
-    all_documents: list[Document] = []
+    all_documents: list[BaseNode] = []
     failed: list[str] = []
 
     async with httpx.AsyncClient(
         timeout=60,
         follow_redirects=True,
-        headers={"User-Agent": "Mozilla/5.0 (compatible; steuerpilot-ingest/1.0; +https://github.com/steuerpilot-ai)"},
+        headers={
+            "User-Agent": "Mozilla/5.0 (compatible; steuerpilot-ingest/1.0; +https://github.com/steuerpilot-ai)"
+        },
     ) as client:
         for schreiben in schreiben_list:
             docs = await _download_one(schreiben, dest_dir, year, client)
@@ -274,6 +284,8 @@ async def download_and_parse_bmf(dest_dir: Path, year: int) -> ParsedLaw:
         len(schreiben_list),
     )
     if failed:
-        logger.warning("BMF: Übersprungene Schreiben (%d): %s", len(failed), ", ".join(failed))
+        logger.warning(
+            "BMF: Übersprungene Schreiben (%d): %s", len(failed), ", ".join(failed)
+        )
 
     return ParsedLaw(parent_nodes=all_documents, child_nodes=[])

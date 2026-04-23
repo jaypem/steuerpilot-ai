@@ -25,6 +25,7 @@ from pathlib import Path
 
 import httpx
 from llama_index.core import Document
+from llama_index.core.schema import BaseNode
 
 from ingest.parser import ParsedLaw
 from ingest.scrapers.registry import get_source
@@ -57,14 +58,14 @@ def _split_by_randnummer(full_text: str) -> list[tuple[str, str]]:
     return parts
 
 
-def parse_lstr_pdf(pdf_bytes: bytes, year: int, url: str) -> list[Document]:
+def parse_lstr_pdf(pdf_bytes: bytes, year: int, url: str) -> list[BaseNode]:
     """
     Parse *pdf_bytes* (raw PDF content) into LlamaIndex Documents.
     One Document per Randnummer section.
     """
     import pdfplumber  # lazy import — optional dependency
 
-    documents: list[Document] = []
+    documents: list[BaseNode] = []
     pages: list[str] = []
 
     with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:

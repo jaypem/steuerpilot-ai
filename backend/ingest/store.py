@@ -15,8 +15,11 @@ Embedding model: intfloat/multilingual-e5-large with passage/query prefix.
 
 import logging
 from pathlib import Path
+from typing import cast
 
 import chromadb
+from chromadb.api import ClientAPI
+from chromadb.api.types import GetResult, Where
 from llama_index.core.ingestion import IngestionPipeline
 from llama_index.core.storage.docstore import SimpleDocumentStore
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
@@ -39,7 +42,7 @@ def get_embed_model() -> HuggingFaceEmbedding:
     )
 
 
-def get_chroma_client(chroma_path: str) -> chromadb.PersistentClient:
+def get_chroma_client(chroma_path: str) -> ClientAPI:
     return chromadb.PersistentClient(path=chroma_path)
 
 
@@ -75,8 +78,9 @@ def store_documents(
     )
 
     # Delete existing entries for this (law, year) before re-ingest
+    where = cast(Where, {"$and": [{"law": {"$eq": law}}, {"year": {"$eq": year}}]})
     existing = collection.get(
-        where={"$and": [{"law": {"$eq": law}}, {"year": {"$eq": year}}]},
+        where=where,
         include=[],
     )
     if existing["ids"]:
@@ -91,7 +95,7 @@ def store_documents(
         transformations=[embed_model],
         vector_store=vector_store,
     )
-    pipeline.run(documents=leaf_nodes, show_progress=True)
+    pipeline.run(nodes=leaf_nodes, show_progress=True)
     logger.info("Stored %d leaf nodes in Chroma for %s %d", len(leaf_nodes), law, year)
 
     # ── SimpleDocumentStore: persist all nodes (parents + children) ────────────
@@ -132,8 +136,9 @@ def count_existing(chroma_path: str, law: str, year: int) -> int:
         collection = client.get_collection(COLLECTION_NAME)
     except Exception:
         return 0
+    where = cast(Where, {"$and": [{"law": {"$eq": law}}, {"year": {"$eq": year}}]})
     result = collection.get(
-        where={"$and": [{"law": {"$eq": law}}, {"year": {"$eq": year}}]},
+        where=where,
         include=[],
     )
     return len(result["ids"])
@@ -146,9 +151,18 @@ def index_summary(chroma_path: str) -> dict[tuple[str, int], int]:
         collection = client.get_collection(COLLECTION_NAME)
     except Exception:
         return {}
-    results = collection.get(include=["metadatas"])
+    results = cast(GetResult, collection.get(include=["metadatas"]))
     counts: dict[tuple[str, int], int] = {}
-    for meta in results["metadatas"]:
-        key = (meta.get("law", "?"), int(meta.get("year", 0)))
+    for meta in results["metadatas"] or []:
+        law_value = meta.get("law", "?")
+        year_value = meta.get("year", 0)
+        law_key = law_value if isinstance(law_value, str) else "?"
+        if isinstance(year_value, (int, float)):
+            year_key = int(year_value)
+        elif isinstance(year_value, str) and year_value.isdigit():
+            year_key = int(year_value)
+        else:
+            year_key = 0
+        key = (law_key, year_key)
         counts[key] = counts.get(key, 0) + 1
     return counts

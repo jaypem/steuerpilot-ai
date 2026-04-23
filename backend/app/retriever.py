@@ -13,18 +13,21 @@ Pipeline per query:
 
 import logging
 from functools import lru_cache
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
-import chromadb
+from chromadb.api.models.Collection import Collection
+from chromadb.api.types import Where
 from llama_index.core.retrievers import BaseRetriever
 from llama_index.core.schema import (
+    BaseNode,
     NodeRelationship,
     NodeWithScore,
     QueryBundle,
+    RelatedNodeInfo,
     TextNode,
 )
-from llama_index.core.storage.docstore import SimpleDocumentStore
-from llama_index.core.vector_stores import MetadataFilter, MetadataFilters
+from llama_index.core.storage.docstore import BaseDocumentStore, SimpleDocumentStore
+from llama_index.core.vector_stores import FilterOperator, MetadataFilter, MetadataFilters
 from llama_index.retrievers.bm25 import BM25Retriever
 
 from app.reference_resolver import resolve_references
@@ -50,13 +53,14 @@ def _get_reranker():
     return CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
 
 
-def _nodes_from_chroma(collection: chromadb.Collection, year: int) -> list[TextNode]:
+def _nodes_from_chroma(collection: Collection, year: int) -> list[BaseNode]:
     """Fetch all nodes for *year* from Chroma — used to build the BM25 corpus."""
+    where = cast(Where, {"year": {"$eq": year}})
     results = collection.get(
-        where={"year": {"$eq": year}},
+        where=where,
         include=["documents", "metadatas"],
     )
-    nodes: list[TextNode] = []
+    nodes: list[BaseNode] = []
     for doc_id, text, meta in zip(
         results.get("ids", []),
         results.get("documents", []) or [],
@@ -76,7 +80,7 @@ class HybridRetriever(BaseRetriever):
     def __init__(
         self,
         index: "VectorStoreIndex",
-        chroma_collection: chromadb.Collection,
+        chroma_collection: Collection,
         year: int,
         chroma_path: str = "",
         automerge: bool = True,
@@ -95,7 +99,13 @@ class HybridRetriever(BaseRetriever):
         self._dense = index.as_retriever(
             similarity_top_k=DENSE_TOP_K,
             filters=MetadataFilters(
-                filters=[MetadataFilter(key="year", value=year, operator="==")]
+                filters=[
+                    MetadataFilter(
+                        key="year",
+                        value=year,
+                        operator=FilterOperator.EQ,
+                    )
+                ]
             ),
         )
 
@@ -111,7 +121,7 @@ class HybridRetriever(BaseRetriever):
             self._bm25 = None
 
         # SimpleDocumentStore for AutoMerge parent lookup
-        self._docstore: SimpleDocumentStore | None = None
+        self._docstore: BaseDocumentStore | None = None
         if chroma_path:
             ds_path = docstore_path(chroma_path)
             if ds_path.exists():
@@ -230,7 +240,7 @@ class HybridRetriever(BaseRetriever):
 
         for n in nodes:
             parent_rel = n.node.relationships.get(NodeRelationship.PARENT)
-            if parent_rel:
+            if isinstance(parent_rel, RelatedNodeInfo):
                 by_parent.setdefault(parent_rel.node_id, []).append(n)
             else:
                 pass_through.append(n)

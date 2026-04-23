@@ -25,6 +25,11 @@ export function useChatAPI({ sessionId, taxYear, onDone }: UseChatAPIOptions = {
   // Replace the entire message list (used when switching sessions)
   const resetMessages = useCallback((next: Message[] = []) => {
     setMessages(next);
+    setErrorMessage(null);
+  }, []);
+
+  const clearError = useCallback(() => {
+    setErrorMessage(null);
   }, []);
 
   const submitMessage = useCallback(
@@ -145,5 +150,12 @@ export function useChatAPI({ sessionId, taxYear, onDone }: UseChatAPIOptions = {
     [isLoading, sessionId, taxYear],
   );
 
-  return { messages, isLoading, submitMessage, errorMessage, resetMessages };
+  return {
+    messages,
+    isLoading,
+    submitMessage,
+    errorMessage,
+    clearError,
+    resetMessages,
+  };
 }

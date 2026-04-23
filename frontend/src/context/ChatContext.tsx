@@ -223,13 +223,15 @@ function APIProvider({ children }: { children: React.ReactNode }) {
     isLoading,
     submitMessage,
     errorMessage: apiError,
+    clearError: clearAPIError,
     resetMessages,
   } = useChatAPI({ sessionId: activeSessionId, taxYear, onDone: refreshSessions });
 
   const errorMessage = apiError ?? extraError;
   const clearError = useCallback(() => {
     setExtraError(null);
-  }, []);
+    clearAPIError();
+  }, [clearAPIError]);
 
   const { savingEntries, totalSaving } = useSavingDerived(messages);
 

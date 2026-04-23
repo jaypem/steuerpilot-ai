@@ -21,7 +21,7 @@ import {
   renameSession as apiRenameSession,
 } from "@/lib/api";
 
-const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK !== "false";
+const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
 
 // ─── Initial demo messages (mock mode only) ───────────────────────────────────
 

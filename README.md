@@ -37,8 +37,8 @@ Mehr Details stehen in [docs/architecture.md](docs/architecture.md).
 # 1. Abhängigkeiten installieren und lokale Env-Dateien anlegen
 make setup
 
-# 2. Frontend aus dem Mock-Modus holen
-# frontend/.env.local: NEXT_PUBLIC_USE_MOCK=false
+# 2. Optional: Frontend bewusst in den Demo-Modus schalten
+# frontend/.env.local: NEXT_PUBLIC_USE_MOCK=true
 
 # 3. Backend konfigurieren
 # backend/.env aus backend/.env.example prüfen/anpassen
@@ -50,7 +50,7 @@ make local.api
 make local.web
 ```
 
-`make setup` erstellt bei Bedarf `backend/.env` aus `backend/.env.example` und `frontend/.env.local` aus `frontend/.env.example`.
+`make setup` erstellt bei Bedarf `backend/.env` aus `backend/.env.example` und `frontend/.env.local` aus `frontend/.env.example`. Standard ist dabei echte API-Nutzung; Mock-Modus muss explizit über `NEXT_PUBLIC_USE_MOCK=true` aktiviert werden.
 
 ### Wissensbasis aufbauen
 

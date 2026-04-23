@@ -45,7 +45,7 @@ Prerequisites: [uv](https://docs.astral.sh/uv/), [Node.js 20+](https://nodejs.or
 
 ```bash
 make setup             # installs backend/frontend deps and creates env files if missing
-# set frontend/.env.local: NEXT_PUBLIC_USE_MOCK=false for real backend calls
+# set frontend/.env.local: NEXT_PUBLIC_USE_MOCK=true for demo mode without backend
 # fill backend/.env from backend/.env.example as needed
 make local.api         # start the Python backend
 make local.web         # start the Next.js dev server

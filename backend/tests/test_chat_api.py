@@ -296,6 +296,18 @@ async def test_chat_requires_message(api_client):
 
 
 @pytest.mark.asyncio
+async def test_chat_rejects_legacy_history_field(api_client):
+    resp = await api_client.post(
+        "/api/chat",
+        json={
+            "message": "Test",
+            "history": [{"role": "user", "content": "Altlast"}],
+        },
+    )
+    assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
 async def test_health_endpoint(api_client):
     resp = await api_client.get("/health")
     assert resp.status_code == 200

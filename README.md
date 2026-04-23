@@ -15,30 +15,42 @@ steuerpilot-ai/
 └── BACKLOG.md       # Geplante Features und bekannte Issues
 ```
 
+## Architektur
+
+Die UI ist ein Next.js-Frontend mit Chat-Ansicht unter `/` und Ausgaben-Scan unter `/scan`. Gemeinsamer Zustand wie aktive Session, Steuerjahr und Mock-vs-API-Modus liegt in `frontend/src/context/ChatContext.tsx`; HTTP- und SSE-Kommunikation läuft über `frontend/src/lib/api.ts`.
+
+Das Backend ist eine FastAPI-App mit vier zentralen Routern: `chat`, `sessions`, `scan` und `health`. Chat-Verläufe werden in SQLite gespeichert, beim nächsten Request wieder geladen und zusammen mit RAG-Kontext aus Chroma an die LLM-Engine übergeben. Ingest und Index-Aufbau laufen separat über `backend/ingest/cli.py`.
+
+Mehr Details stehen in [docs/architecture.md](docs/architecture.md).
+
 ## Lokale Entwicklung
 
 ### Voraussetzungen
 
 - [uv](https://docs.astral.sh/uv/) (Python-Paketmanager)
 - [Node.js 20+](https://nodejs.org/) + [pnpm](https://pnpm.io/)
-- [Ollama](https://ollama.com/) (für lokale LLM-Inferenz)
+- [Ollama](https://ollama.com/) (optional, für lokale LLM-Inferenz ohne Mock-Modus)
 
 ### Setup
 
 ```bash
-# 1. Umgebungsvariablen konfigurieren
-cp backend/.env.example backend/.env
-# → backend/.env befüllen (mindestens OLLAMA_MODEL prüfen)
-
-# 2. Abhängigkeiten installieren
+# 1. Abhängigkeiten installieren und lokale Env-Dateien anlegen
 make setup
 
-# 3. Backend starten (http://localhost:8000)
+# 2. Frontend aus dem Mock-Modus holen
+# frontend/.env.local: NEXT_PUBLIC_USE_MOCK=false
+
+# 3. Backend konfigurieren
+# backend/.env aus backend/.env.example prüfen/anpassen
+
+# 4. Backend starten (http://localhost:8000)
 make local.api
 
-# 4. Frontend starten (http://localhost:3000)
+# 5. Frontend starten (http://localhost:3000)
 make local.web
 ```
+
+`make setup` erstellt bei Bedarf `backend/.env` aus `backend/.env.example` und `frontend/.env.local` aus `frontend/.env.example`.
 
 ### Wissensbasis aufbauen
 
@@ -140,3 +152,10 @@ make lint.frontend     # eslint (Frontend)
 make typecheck.frontend # tsc --noEmit (Frontend)
 make help              # alle verfügbaren Targets
 ```
+
+## CI/CD
+
+GitHub Actions liegen unter [`.github/workflows/`](.github/workflows/):
+
+- `ci.yml`: Backend-Linting, Format-Check, Mypy, Pytest sowie Frontend-Linting und Typecheck
+- `check-sources.yml`: jährlicher URL-Check für externe Rechtsquellen mit automatischer Issue-Erstellung bei Ausfällen

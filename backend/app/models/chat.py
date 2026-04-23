@@ -1,20 +1,16 @@
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 # ─── Request ─────────────────────────────────────────────────────────────────
 
 
-class HistoryMessage(BaseModel):
-    role: Literal["user", "assistant"]
-    content: str
-
-
 class ChatRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     message: str = Field(..., min_length=1, max_length=2000)
     session_id: str | None = None
-    history: list[HistoryMessage] = []
     tax_year: int = 2025
 
 

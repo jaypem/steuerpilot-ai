@@ -17,50 +17,51 @@ when working in this repository.
 
 ## Project Overview
 
-<!-- One paragraph describing what this project does. -->
-
-TODO: describe the project.
+`steuerpilot-ai` ist ein RAG-basierter Assistent für deutsches Steuerrecht. Das Repo enthält ein Next.js-Frontend für Chat und Ausgaben-Scan, ein FastAPI-Backend für SSE-Streaming, Session-Persistenz und Retrieval sowie eine separate Ingest-Pipeline für Gesetze, BFH-Urteile, BMF-Schreiben und LStR.
 
 ## Architecture
 
-<!-- Brief architecture summary. Link to docs/architecture.md for details. -->
-
 ```text
-src/
-├── api/        # REST API layer
-├── domain/     # Business logic / domain models
-├── infra/      # Persistence, external service clients
-└── ...
-tests/
-├── unit/
-├── integration/
-└── e2e/
+frontend/src/
+├── app/                    # Next.js App Router pages (chat, scan)
+├── components/             # UI building blocks
+├── context/ChatContext.tsx # Sessions, tax year, mock/API mode
+└── lib/api.ts              # REST + SSE client
+backend/app/
+├── main.py                 # FastAPI app + lifespan
+├── routers/                # chat, sessions, scan, health
+├── engine.py               # Chat engine + history loading + SSE chunks
+├── retriever.py            # Hybrid retrieval + reranking
+└── reference_resolver.py   # Law-specific paragraph resolution
+backend/ingest/
+└── cli.py                  # Ingest, search, evaluation commands
 ```
 
 See [docs/architecture.md](docs/architecture.md) for a detailed overview.
 
 ## Development Setup
 
-Prerequisites: [uv](https://docs.astral.sh/uv/), Docker
+Prerequisites: [uv](https://docs.astral.sh/uv/), [Node.js 20+](https://nodejs.org/), [pnpm](https://pnpm.io/), optional [Ollama](https://ollama.com/) for local LLM inference
 
 ```bash
-cp .env.example .env   # fill in values
-make setup             # uv sync + env setup
-make docker.up         # start supporting services (DB, cache)
+make setup             # installs backend/frontend deps and creates env files if missing
+# set frontend/.env.local: NEXT_PUBLIC_USE_MOCK=false for real backend calls
+# fill backend/.env from backend/.env.example as needed
 make local.api         # start the Python backend
-make local.web         # start the Vite dev server
+make local.web         # start the Next.js dev server
 ```
 
 ## Common Commands
 
 ```bash
-make test              # run the full test suite (uv run pytest)
-make test.coverage     # run tests with coverage report
-make lint              # ruff check
-make format            # ruff format + ruff check --fix
-make typecheck         # mypy
-make docker.up         # start all Docker services
-make docker.down       # stop all Docker services
+make test              # backend test suite (pytest)
+make lint              # backend lint (ruff check)
+make format            # backend format (ruff format + ruff check --fix)
+make typecheck         # backend type-check (mypy)
+make lint.frontend     # frontend lint (eslint)
+make typecheck.frontend # frontend type-check (tsc --noEmit)
+make local.ingest      # ingest core laws into Chroma
+make local.status      # inspect indexed source coverage
 make help              # list all available Make targets
 ```
 
@@ -141,35 +142,34 @@ FEAT(AUTH): Add.   ← upper-case type, trailing period
 
 ## Testing
 
-- Write unit tests for all business logic in `src/domain/`.
-- Write integration tests for database and external service interactions.
-- Run `make test` before pushing. CI will block PRs with failing tests.
+- Backend tests live in `backend/tests/`.
+- Frontend currently relies on `eslint` + `tsc` instead of a dedicated unit test harness.
+- Run `make test`, `make lint`, `make typecheck`, `make lint.frontend`, and `make typecheck.frontend` before pushing changes that cross frontend/backend boundaries.
 
 ## Environment Variables
 
-All required variables are documented in [.env.example](.env.example).
-Never commit real credentials to the repository — secrets go in `.env` (gitignored)
-or in the deployment environment's secrets manager.
+Use `backend/.env.example` for backend variables and `frontend/.env.example` for frontend variables.
+Never commit real credentials to the repository — secrets go in `backend/.env`, `frontend/.env.local`, or the deployment environment's secrets manager.
 
 ## CI/CD
 
-Pipelines are defined in [bitbucket-pipelines.yml](bitbucket-pipelines.yml):
+GitHub Actions workflows are defined in [`.github/workflows/`](.github/workflows/):
 
-- Pull Requests: lint + type-check + test + build (no deploy)
-- `main`: above + deploy to **staging** (automatic)
-- Tags `v*`: above + deploy to **production** (manual approval required)
+- `ci.yml`: backend lint, format check, mypy, pytest; frontend lint and type-check
+- `check-sources.yml`: yearly URL freshness check for external legal sources, opens a GitHub issue on failure
 
 ## Important Files
 
 | File                                | Purpose                              |
 | ----------------------------------- | ------------------------------------ |
 | `Makefile`                          | All developer workflow commands      |
-| `Dockerfile`                        | Multi-stage production container     |
-| `docker-compose.yml`                | Local dev stack (app, DB, cache)     |
-| `bitbucket-pipelines.yml`           | CI/CD pipeline                       |
-| `.pre-commit-config.yaml`           | Pre-commit hooks (lint, format, etc) |
-| `.env.example`                      | Environment variable documentation   |
-| `CONTRIBUTING.md`                   | Branching, commits, PR process       |
-| `CHANGELOG.md`                      | Release history                      |
-| `SECURITY.md`                       | Vulnerability reporting policy       |
+| `README.md`                         | Developer-facing setup and workflow  |
+| `docs/architecture.md`              | High-level frontend/backend overview |
+| `backend/app/main.py`               | FastAPI app entrypoint               |
+| `backend/app/engine.py`             | Chat engine and SSE streaming        |
+| `backend/ingest/cli.py`             | Ingest/search/eval command entrypoint |
+| `frontend/src/context/ChatContext.tsx` | Shared UI state and session flow  |
+| `.github/workflows/ci.yml`          | Main CI pipeline                     |
+| `.github/workflows/check-sources.yml` | Scheduled source health check     |
 | `CODEOWNERS`                        | PR review ownership                  |
+| `SECURITY.md`                       | Vulnerability reporting policy       |

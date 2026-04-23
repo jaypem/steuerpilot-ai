@@ -16,7 +16,7 @@ HINWEISE:
 - valid_from_year: Frühestes Steuerjahr, für das das Schreiben gilt (RAG-Filter).
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 @dataclass(frozen=True)

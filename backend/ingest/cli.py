@@ -11,7 +11,6 @@ Commands:
 
 import asyncio
 import logging
-import sys
 from pathlib import Path
 
 import typer
@@ -109,7 +108,7 @@ def ingest(
     from ingest.parser import parse_law_xml
     from ingest.store import store_documents, count_existing
 
-    unsupported = [l for l in laws if l not in LAW_URLS]
+    unsupported = [law_name for law_name in laws if law_name not in LAW_URLS]
     if unsupported:
         console.print(f"[red]Unbekannte Gesetze: {unsupported}[/red]")
         console.print(f"Unterstützt: {list(LAW_URLS.keys())}")
@@ -217,7 +216,6 @@ def search(
     table.add_column("Score", justify="right")
     table.add_column("Text (Auszug)")
 
-    ids = results["ids"][0]
     docs = results["documents"][0]
     metas = results["metadatas"][0]
     dists = results["distances"][0]

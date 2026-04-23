@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from llama_index.core.schema import NodeRelationship, NodeWithScore, QueryBundle, RelatedNodeInfo, TextNode
 
-from app.retriever import DENSE_TOP_K, BM25_TOP_K, MERGE_THRESHOLD, RERANK_TOP_N, HybridRetriever
+from app.retriever import MERGE_THRESHOLD, RERANK_TOP_N, HybridRetriever
 
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────

@@ -5,11 +5,9 @@ Tests run against a minimal in-memory XML fixture — no network, no embeddings.
 """
 from pathlib import Path
 
-import pytest
 from llama_index.core.schema import NodeRelationship
 
 from ingest.parser import ParsedLaw, _abs_section, _extract_text, _para_url, parse_law_xml
-from tests.conftest import MINIMAL_XML
 
 
 # ─── _extract_text ────────────────────────────────────────────────────────────

@@ -25,7 +25,6 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 _GOLDSET_PATH = Path(__file__).parent / "goldset.json"
-_EVAL_DIR = Path(__file__).parent
 
 
 # ─── RAG pipeline helpers ─────────────────────────────────────────────────────
@@ -42,7 +41,7 @@ async def _run_question(
     Returns {"answer": str, "contexts": list[str]}.
     """
     import aiosqlite
-    from app.database import DB_PATH, init_db
+    from app.database import init_db
     from app.engine import stream_chat_response
 
     # Use a temporary in-memory DB for evaluation (no side effects)

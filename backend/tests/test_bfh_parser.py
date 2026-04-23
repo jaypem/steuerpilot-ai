@@ -164,14 +164,14 @@ class TestFallbackTextSplit:
     def test_splits_on_known_headings(self):
         text = "Leitsätze\nKurz.\n\nEntscheidungsgründe\n" + "x" * 200
         parts = _fallback_text_split(text)
-        labels = [l for l, _ in parts]
+        labels = [label for label, _ in parts]
         assert "Entscheidungsgründe" in labels
 
     def test_short_sections_filtered(self):
         text = "Leitsätze\nZu kurz.\n\nTatbestand\n" + "y" * 200
         parts = _fallback_text_split(text)
         # Leitsätze body "Zu kurz." < _MIN_CHUNK_CHARS → only Tatbestand passes
-        labels = [l for l, _ in parts]
+        labels = [label for label, _ in parts]
         assert "Tatbestand" in labels
         assert "Leitsätze" not in labels
 
@@ -260,13 +260,16 @@ class TestParseHtml:
         docs = _parse_html(SAMPLE_HTML_STRUCTURED, SAMPLE_URTEIL, 2023)
         labels = {d.metadata["section"] for d in docs}
         # Leitsätze and Entscheidungsgründe sections should be present
-        assert any("Leitsätze" in l or "Entscheidungsgründe" in l for l in labels)
+        assert any(
+            "Leitsätze" in label or "Entscheidungsgründe" in label
+            for label in labels
+        )
 
     def test_subsections_split(self):
         docs = _parse_html(SAMPLE_HTML_STRUCTURED, SAMPLE_URTEIL, 2023)
         labels = {d.metadata["section"] for d in docs}
         # Tatbestand and Entscheidungsgründe have h3 subsections I. and II.
-        subsection_labels = [l for l in labels if " — " in l]
+        subsection_labels = [label for label in labels if " — " in label]
         assert len(subsection_labels) >= 2
 
     def test_rn_numbers_in_text(self):
@@ -325,7 +328,6 @@ class TestBfhCatalog:
             superseded=True,
         )
         import ingest.scrapers.bfh_catalog as cat
-        original = cat.BFH_URTEILE[:]
         cat.BFH_URTEILE.append(superseded)  # type: ignore[attr-defined]
         try:
             active = get_active_urteile(2025)

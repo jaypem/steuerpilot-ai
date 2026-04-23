@@ -4,8 +4,6 @@ Unit tests for ingest/scrapers/bmf.py and ingest/scrapers/bmf_catalog.py.
 All tests are offline — no network, no embeddings, no Chroma.
 PDF and HTML content is synthesized in-memory.
 """
-import io
-from pathlib import Path
 
 import pytest
 
@@ -104,9 +102,9 @@ class TestSplitText:
         parts = _split_text(TEXT_WITH_ABSCHNITTE)
         assert len(parts) == 3
         labels = [label for label, _ in parts]
-        assert any("I." in l for l in labels)
-        assert any("II." in l for l in labels)
-        assert any("III." in l for l in labels)
+        assert any("I." in label for label in labels)
+        assert any("II." in label for label in labels)
+        assert any("III." in label for label in labels)
 
     def test_abschnitt_body_not_empty(self):
         parts = _split_text(TEXT_WITH_ABSCHNITTE)
@@ -117,8 +115,8 @@ class TestSplitText:
         parts = _split_text(TEXT_WITH_RANDNUMMERN)
         assert len(parts) == 3
         labels = [label for label, _ in parts]
-        assert any("Rn. 1" in l for l in labels)
-        assert any("Rn. 3" in l for l in labels)
+        assert any("Rn. 1" in label for label in labels)
+        assert any("Rn. 3" in label for label in labels)
 
     def test_fallback_whole_document(self):
         parts = _split_text(TEXT_WITHOUT_STRUCTURE)
@@ -136,8 +134,8 @@ class TestSplitText:
         text = "I. Erster\n\nzu kurz\n\nII. Zweiter\n\n" + ("a" * 200)
         parts = _split_text(text)
         # Only the second section passes the _MIN_CHUNK_CHARS threshold
-        labels = [l for l, _ in parts]
-        assert any("II." in l for l in labels)
+        labels = [label for label, _ in parts]
+        assert any("II." in label for label in labels)
 
 
 # ─── _build_documents ─────────────────────────────────────────────────────────
@@ -245,7 +243,6 @@ class TestBmfCatalog:
             superseded=True,
         )
         import ingest.scrapers.bmf_catalog as cat
-        original = cat.BMF_SCHREIBEN[:]
         cat.BMF_SCHREIBEN.append(superseded)  # type: ignore[attr-defined]
         try:
             active = get_active_schreiben(2025)

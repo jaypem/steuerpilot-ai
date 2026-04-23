@@ -17,7 +17,6 @@ import logging
 from pathlib import Path
 
 import chromadb
-from llama_index.core import StorageContext, VectorStoreIndex
 from llama_index.core.ingestion import IngestionPipeline
 from llama_index.core.storage.docstore import SimpleDocumentStore
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding

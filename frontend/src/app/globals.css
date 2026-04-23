@@ -2,6 +2,21 @@
 
 /* ─── Design Tokens ─────────────────────────────────────────────────────── */
 
+:root {
+  --font-geist-sans:
+    "Avenir Next",
+    "Segoe UI",
+    "Helvetica Neue",
+    Arial,
+    sans-serif;
+  --font-geist-mono:
+    "SFMono-Regular",
+    "Cascadia Code",
+    "Liberation Mono",
+    Menlo,
+    monospace;
+}
+
 @theme inline {
   /* Fonts */
   --font-sans: var(--font-geist-sans);

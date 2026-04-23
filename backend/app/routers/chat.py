@@ -3,7 +3,6 @@ import json
 import logging
 import uuid
 from collections.abc import AsyncGenerator
-from datetime import UTC, datetime
 
 import aiosqlite
 from fastapi import APIRouter, Request
@@ -20,6 +19,7 @@ from app.models.chat import (
     StreamChunk,
     TextChunk,
 )
+from app.timestamps import utc_now
 
 logger = logging.getLogger(__name__)
 
@@ -33,14 +33,10 @@ def _sse(chunk: StreamChunk) -> str:
     return f"data: {chunk.model_dump_json()}\n\n"
 
 
-def _now() -> str:
-    return datetime.now(UTC).isoformat()
-
-
 async def _ensure_session(
     db: aiosqlite.Connection, session_id: str, title: str
 ) -> None:
-    now = _now()
+    now = utc_now()
     await db.execute(
         """
         INSERT INTO sessions (id, title, created_at, updated_at, message_count, total_saving)
@@ -61,16 +57,14 @@ async def _persist_exchange(
     risk: RiskBadgeChunk | None,
     saving: SavingChunk | None,
 ) -> None:
-    now = _now()
+    now = utc_now()
 
     await db.execute(
         "INSERT INTO messages (id, session_id, role, content, created_at) VALUES (?, ?, 'user', ?, ?)",
         (str(uuid.uuid4()), session_id, user_content, now),
     )
 
-    sources_json = (
-        json.dumps([s.model_dump() for s in sources]) if sources else None
-    )
+    sources_json = json.dumps([s.model_dump() for s in sources]) if sources else None
     risk_json = risk.model_dump_json() if risk else None
     saving_amount = saving.amount if saving else None
 
@@ -143,7 +137,9 @@ async def _tracked_stream(
         if t == "text":
             text_parts.append(payload.get("content", ""))
         elif t == "source":
-            sources.append(SourceChunk(**{k: v for k, v in payload.items() if k != "type"}))
+            sources.append(
+                SourceChunk(**{k: v for k, v in payload.items() if k != "type"})
+            )
         elif t == "risk_badge":
             risk = RiskBadgeChunk(**{k: v for k, v in payload.items() if k != "type"})
         elif t == "saving":

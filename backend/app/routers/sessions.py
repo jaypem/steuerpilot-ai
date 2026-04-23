@@ -1,10 +1,10 @@
 import json
-from datetime import datetime
 
 import aiosqlite
 from fastapi import APIRouter, HTTPException, Request
 
 from app.models.session import MessageResponse, SessionDetailResponse, SessionRenameRequest, SessionResponse
+from app.timestamps import parse_timestamp, utc_now
 
 router = APIRouter(prefix="/api", tags=["sessions"])
 
@@ -16,8 +16,8 @@ def _row_to_session(row: aiosqlite.Row) -> SessionResponse:
     return SessionResponse(
         id=row["id"],
         title=row["title"],
-        created_at=datetime.fromisoformat(row["created_at"]),
-        updated_at=datetime.fromisoformat(row["updated_at"]),
+        created_at=parse_timestamp(row["created_at"]),
+        updated_at=parse_timestamp(row["updated_at"]),
         message_count=row["message_count"],
         total_saving=row["total_saving"],
     )
@@ -32,7 +32,7 @@ def _row_to_message(row: aiosqlite.Row) -> MessageResponse:
         sources=json.loads(row["sources"]) if row["sources"] else None,
         risk_badge=json.loads(row["risk_badge"]) if row["risk_badge"] else None,
         saving_amount=row["saving_amount"],
-        created_at=datetime.fromisoformat(row["created_at"]),
+        created_at=parse_timestamp(row["created_at"]),
     )
 
 
@@ -89,7 +89,7 @@ async def rename_session(
         raise HTTPException(status_code=422, detail="Title must not be empty")
 
     db = _db(request)
-    now = datetime.utcnow().isoformat()
+    now = utc_now()
 
     async with db.execute(
         "SELECT id FROM sessions WHERE id = ?", (session_id,)

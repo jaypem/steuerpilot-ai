@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, ChevronDown, Check, Search, Loader2 } from 'lucide-react';
 import { useDropdown } from '@/hooks/useDropdown';
@@ -46,8 +46,21 @@ export const ModernMultiSelect: React.FC<ModernMultiSelectProps> = ({
   });
 
   useEffect(() => {
-    if (isOpen) setPendingValue(value);
-  }, [isOpen, value]);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
+
+  const handleTriggerClick = () => {
+    if (loading) return;
+    if (isOpen) {
+      close();
+      return;
+    }
+    setPendingValue(value);
+    setSearchTerm('');
+    toggle();
+  };
 
   const handleSearchChange = (term: string) => {
     setSearchTerm(term);
@@ -79,7 +92,8 @@ export const ModernMultiSelect: React.FC<ModernMultiSelectProps> = ({
   const handleApply = () => {
     close();
     setSearchTerm('');
-    onEnter ? onEnter(pendingValue) : onChange(pendingValue);
+    if (onEnter) onEnter(pendingValue);
+    else onChange(pendingValue);
   };
 
   const handleCancel = () => {
@@ -117,7 +131,7 @@ export const ModernMultiSelect: React.FC<ModernMultiSelectProps> = ({
     <div ref={containerRef} className="relative">
       {/* Trigger */}
       <div
-        onClick={() => !loading && toggle()}
+        onClick={handleTriggerClick}
         className={`min-h-[32px] px-2 py-1 text-xs border border-border rounded bg-surface-raised text-foreground flex items-center justify-between ${loading ? 'cursor-wait opacity-75' : 'cursor-pointer'}`}
       >
         <div className="flex-1 flex flex-wrap gap-1">

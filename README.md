@@ -20,7 +20,7 @@ steuerpilot-ai/
 ### Voraussetzungen
 
 - [uv](https://docs.astral.sh/uv/) (Python-Paketmanager)
-- [Node.js 20+](https://nodejs.org/) + npm
+- [Node.js 20+](https://nodejs.org/) + [pnpm](https://pnpm.io/)
 - [Ollama](https://ollama.com/) (für lokale LLM-Inferenz)
 
 ### Setup
@@ -133,8 +133,10 @@ Nach dem ersten Download liegt das Modell unter `~/.cache/huggingface/hub/` und 
 
 ```bash
 make test              # pytest (Backend)
-make lint              # ruff check
-make format            # ruff format
-make typecheck         # mypy
+make lint              # ruff check (Backend)
+make format            # ruff format + ruff check --fix (Backend)
+make typecheck         # mypy (Backend)
+make lint.frontend     # eslint (Frontend)
+make typecheck.frontend # tsc --noEmit (Frontend)
 make help              # alle verfügbaren Targets
 ```

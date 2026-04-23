@@ -148,15 +148,31 @@ eval.compare: ## Vergleiche zwei Snapshots — A=path/a.json B=path/b.json
 
 # ---- Quality ----------------------------------------------------------------
 
-.PHONY: test lint
+.PHONY: test lint format typecheck lint.frontend typecheck.frontend
 
 test: ## Run backend tests
 	$(call require,$(UV))
 	@cd backend && $(UV) run pytest
 
-lint: ## Lint frontend
+lint: ## Lint backend (ruff check)
+	$(call require,$(UV))
+	@cd backend && $(UV) run ruff check .
+
+format: ## Format backend (ruff format + ruff check --fix)
+	$(call require,$(UV))
+	@cd backend && $(UV) run ruff format . && $(UV) run ruff check . --fix
+
+typecheck: ## Type-check backend (mypy)
+	$(call require,$(UV))
+	@cd backend && $(UV) run mypy app/ ingest/
+
+lint.frontend: ## Lint frontend (eslint)
 	$(call require,$(PNPM))
 	@cd frontend && $(PNPM) lint
+
+typecheck.frontend: ## Type-check frontend (tsc --noEmit)
+	$(call require,$(PNPM))
+	@cd frontend && $(PNPM) exec tsc --noEmit
 
 # ---- Cleanup ----------------------------------------------------------------
 

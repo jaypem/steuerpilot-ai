@@ -46,7 +46,7 @@ jobs:
 
   # ── Frontend ───────────────────────────────────────────────────────────────
   frontend:
-    name: Frontend (lint · typecheck)
+    name: Frontend (lint · typecheck · build)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -76,3 +76,6 @@ jobs:
 
       - name: Type check (tsc)
         run: pnpm exec tsc --noEmit
+
+      - name: Build (next build)
+        run: pnpm build

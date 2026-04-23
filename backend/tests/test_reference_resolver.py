@@ -50,12 +50,17 @@ def test_extract_deduplicates():
 
 # ─── Helper: build mock nodes ─────────────────────────────────────────────────
 
-def _node(node_id: str, text: str, paragraph: str = "") -> NodeWithScore:
+def _node(
+    node_id: str,
+    text: str,
+    paragraph: str = "",
+    law: str = "EStG",
+) -> NodeWithScore:
     return NodeWithScore(
         node=TextNode(
             text=text,
             id_=node_id,
-            metadata={"paragraph": paragraph, "year": 2025},
+            metadata={"law": law, "paragraph": paragraph, "year": 2025},
         ),
         score=1.0,
     )
@@ -106,6 +111,46 @@ def test_new_reference_fetched_from_chroma():
     result = resolve_references(nodes, col, year=2025)
     assert len(result) == 2
     assert result[1].node.node_id == "n33"
+
+
+def test_reference_defaults_to_same_law_when_no_law_is_explicit():
+    nodes = [_node("n1", "i.V.m. § 33 Abs. 2", "§ 9", law="EStG")]
+    col = _mock_collection(
+        ids=["n33"],
+        documents=["§ 33 EStG — außergewöhnliche Belastungen"],
+        metadatas=[{"law": "EStG", "paragraph": "§ 33", "year": 2025}],
+    )
+
+    resolve_references(nodes, col, year=2025)
+
+    where = col.get.call_args.kwargs["where"]
+    assert {"law": {"$eq": "EStG"}} in where["$and"][1]["$and"]
+    assert {"paragraph": {"$eq": "§ 33"}} in where["$and"][1]["$and"]
+
+
+def test_explicit_law_disambiguates_same_paragraph_number():
+    nodes = [_node("n1", "i.V.m. § 33 AO", "§ 9", law="EStG")]
+    col = _mock_collection(
+        ids=["ao-33"],
+        documents=["§ 33 AO — Vollstreckung"],
+        metadatas=[{"law": "AO", "paragraph": "§ 33", "year": 2025}],
+    )
+
+    resolve_references(nodes, col, year=2025)
+
+    where = col.get.call_args.kwargs["where"]
+    assert {"law": {"$eq": "AO"}} in where["$and"][1]["$and"]
+    assert {"paragraph": {"$eq": "§ 33"}} in where["$and"][1]["$and"]
+
+
+def test_non_law_sources_require_explicit_law_to_resolve():
+    nodes = [_node("bfh-1", "i.V.m. § 33 Abs. 2", "VI R 32/20", law="BFH")]
+    col = _mock_collection()
+
+    result = resolve_references(nodes, col, year=2025)
+
+    assert result == nodes
+    col.get.assert_not_called()
 
 
 def test_duplicate_node_id_not_added_twice():

@@ -7,11 +7,9 @@ import { formatRelativeDate } from "@/lib/mockSessions";
 function SessionTitle({
   id,
   title,
-  isActive,
 }: {
   id: string;
   title: string;
-  isActive: boolean;
 }) {
   const { renameSession } = useChatContext();
   const [editing, setEditing] = useState(false);
@@ -116,7 +114,7 @@ export default function SessionSidebar() {
                       : "text-sidebar-text hover:bg-sidebar-item hover:text-sidebar-text-active"
                   }`}
                 >
-                  <SessionTitle id={session.id} title={session.title} isActive={isActive} />
+                  <SessionTitle id={session.id} title={session.title} />
                   <div className="mt-0.5 flex items-center justify-between gap-2">
                     <span className="text-xs opacity-60">
                       {formatRelativeDate(session.createdAt)}

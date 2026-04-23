@@ -10,65 +10,71 @@ interface AssistantMessageProps {
 
 // ─── Markdown component overrides ────────────────────────────────────────────
 
+function withoutNode<T extends { node?: unknown }>(props: T): Omit<T, "node"> {
+  const { node, ...rest } = props;
+  void node;
+  return rest;
+}
+
 const mdComponents: React.ComponentProps<typeof Markdown>["components"] = {
-  p: ({ node: _node, ...props }) => (
+  p: (props) => (
     <p
       className="mb-2 text-sm leading-relaxed text-foreground last:mb-0"
-      {...props}
+      {...withoutNode(props)}
     />
   ),
-  strong: ({ node: _node, ...props }) => (
-    <strong className="font-semibold text-foreground" {...props} />
+  strong: (props) => (
+    <strong className="font-semibold text-foreground" {...withoutNode(props)} />
   ),
-  em: ({ node: _node, ...props }) => <em className="italic" {...props} />,
-  ul: ({ node: _node, ...props }) => (
+  em: (props) => <em className="italic" {...withoutNode(props)} />,
+  ul: (props) => (
     <ul
       className="mb-2 ml-4 list-disc space-y-0.5 text-sm leading-relaxed text-foreground last:mb-0"
-      {...props}
+      {...withoutNode(props)}
     />
   ),
-  ol: ({ node: _node, ...props }) => (
+  ol: (props) => (
     <ol
       className="mb-2 ml-4 list-decimal space-y-0.5 text-sm leading-relaxed text-foreground last:mb-0"
-      {...props}
+      {...withoutNode(props)}
     />
   ),
-  li: ({ node: _node, ...props }) => (
-    <li className="text-sm leading-relaxed" {...props} />
+  li: (props) => (
+    <li className="text-sm leading-relaxed" {...withoutNode(props)} />
   ),
-  pre: ({ node: _node, ...props }) => (
+  pre: (props) => (
     <pre
       className="my-2 overflow-x-auto rounded border border-border bg-surface p-3 text-xs"
-      {...props}
+      {...withoutNode(props)}
     />
   ),
-  code: ({ node: _node, ...props }) => (
+  code: (props) => (
     <code
       className="rounded bg-surface px-1 py-0.5 font-mono text-xs text-foreground"
-      {...props}
+      {...withoutNode(props)}
     />
   ),
-  blockquote: ({ node: _node, ...props }) => (
+  blockquote: (props) => (
     <blockquote
       className="my-2 border-l-2 border-border pl-3 text-sm italic text-muted"
-      {...props}
+      {...withoutNode(props)}
     />
   ),
-  h1: ({ node: _node, ...props }) => (
-    <h1 className="mb-1 text-base font-semibold text-foreground" {...props} />
+  h1: (props) => (
+    <h1 className="mb-1 text-base font-semibold text-foreground" {...withoutNode(props)} />
   ),
-  h2: ({ node: _node, ...props }) => (
-    <h2 className="mb-1 text-sm font-semibold text-foreground" {...props} />
+  h2: (props) => (
+    <h2 className="mb-1 text-sm font-semibold text-foreground" {...withoutNode(props)} />
   ),
-  h3: ({ node: _node, ...props }) => (
-    <h3 className="mb-1 text-sm font-medium text-foreground" {...props} />
+  h3: (props) => (
+    <h3 className="mb-1 text-sm font-medium text-foreground" {...withoutNode(props)} />
   ),
-  a: ({ node: _node, ...props }) => (
+  a: (props) => (
     <a
       className="text-accent underline hover:text-accent-hover"
       target="_blank"
       rel="noopener noreferrer"
-      {...props}
+      {...withoutNode(props)}
     />
   ),
 };

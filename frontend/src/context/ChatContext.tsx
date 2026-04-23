@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import type { Message } from "@/types/chat";
@@ -202,6 +203,7 @@ function APIProvider({ children }: { children: React.ReactNode }) {
   );
   const [extraError, setExtraError] = useState<string | null>(null);
   const [taxYear, setTaxYear] = useState(2025);
+  const sessionLoadRef = useRef<AbortController | null>(null);
 
   const refreshSessions = useCallback(() => {
     fetchSessions()
@@ -235,36 +237,65 @@ function APIProvider({ children }: { children: React.ReactNode }) {
 
   const { savingEntries, totalSaving } = useSavingDerived(messages);
 
+  const cancelSessionLoad = useCallback(() => {
+    sessionLoadRef.current?.abort();
+    sessionLoadRef.current = null;
+  }, []);
+
+  useEffect(() => cancelSessionLoad, [cancelSessionLoad]);
+
   const selectSession = useCallback(
     async (id: string) => {
+      cancelSessionLoad();
+      clearError();
+
+      const controller = new AbortController();
+      sessionLoadRef.current = controller;
       setActiveSessionId(id);
+
+      resetMessages([]);
+
       try {
-        const msgs = await fetchSessionMessages(id);
+        const msgs = await fetchSessionMessages(id, controller.signal);
+        if (controller.signal.aborted || sessionLoadRef.current !== controller) return;
         resetMessages(msgs);
-      } catch {
+      } catch (err) {
+        if ((err as Error).name === "AbortError") return;
+        if (sessionLoadRef.current !== controller) return;
+        setExtraError(
+          err instanceof Error ? err.message : "Session konnte nicht geladen werden",
+        );
         resetMessages([]);
+      } finally {
+        if (sessionLoadRef.current === controller) {
+          sessionLoadRef.current = null;
+        }
       }
     },
-    [resetMessages],
+    [cancelSessionLoad, clearError, resetMessages],
   );
 
   const newSession = useCallback(() => {
+    cancelSessionLoad();
+    clearError();
     const id = crypto.randomUUID();
     setActiveSessionId(id);
     resetMessages([]);
-  }, [resetMessages]);
+  }, [cancelSessionLoad, clearError, resetMessages]);
 
   const deleteSess = useCallback(
     async (id: string) => {
       await apiDeleteSession(id).catch(() => null);
       setSessions((prev) => prev.filter((s) => s.id !== id));
       if (activeSessionId === id) {
+        cancelSessionLoad();
+        clearError();
         const next = crypto.randomUUID();
         setActiveSessionId(next);
         resetMessages([]);
       }
     },
-    [activeSessionId, resetMessages],
+    [activeSessionId, cancelSessionLoad, clearError, resetMessages],
   );
 
   const renameSess = useCallback(async (id: string, title: string) => {

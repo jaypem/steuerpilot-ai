@@ -115,8 +115,9 @@ export async function fetchSessions(): Promise<Session[]> {
 
 export async function fetchSessionMessages(
   sessionId: string,
+  signal?: AbortSignal,
 ): Promise<Message[]> {
-  const res = await fetch(`${API_URL}/api/sessions/${sessionId}`);
+  const res = await fetch(`${API_URL}/api/sessions/${sessionId}`, { signal });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const data: APISessionDetail = await res.json();
   return data.messages.map(mapMessage);

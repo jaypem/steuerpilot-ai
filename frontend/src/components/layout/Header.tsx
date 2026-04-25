@@ -73,6 +73,16 @@ export default function Header({
           >
             Ausgaben-Scan
           </Link>
+          <Link
+            href="/idea-transfer"
+            className={`rounded-md px-2.5 py-1 text-xs transition-colors ${
+              pathname === "/idea-transfer"
+                ? "bg-border text-foreground"
+                : "text-muted hover:bg-border hover:text-foreground"
+            }`}
+          >
+            Ideen-Transfer
+          </Link>
         </nav>
       </div>
 

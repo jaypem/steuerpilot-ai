@@ -143,6 +143,28 @@ def test_explicit_law_disambiguates_same_paragraph_number():
     assert {"paragraph": {"$eq": "§ 33"}} in where["$and"][1]["$and"]
 
 
+def test_new_special_case_laws_are_resolvable():
+    nodes = [_node("n1", "vgl. § 8 KStG, § 7 ErbStG und § 4 ArbNErfG", "§ 9")]
+    col = _mock_collection(
+        ids=["kstg-8", "erbstg-7", "arbn-4"],
+        documents=["§ 8 KStG", "§ 7 ErbStG", "§ 4 ArbNErfG"],
+        metadatas=[
+            {"law": "KStG", "paragraph": "§ 8", "year": 2025},
+            {"law": "ErbStG", "paragraph": "§ 7", "year": 2025},
+            {"law": "ArbNErfG", "paragraph": "§ 4", "year": 2025},
+        ],
+    )
+
+    result = resolve_references(nodes, col, year=2025)
+
+    assert len(result) == 4
+    where = col.get.call_args.kwargs["where"]
+    filters = where["$and"][1]["$or"]
+    assert {"$and": [{"law": {"$eq": "KStG"}}, {"paragraph": {"$eq": "§ 8"}}]} in filters
+    assert {"$and": [{"law": {"$eq": "ErbStG"}}, {"paragraph": {"$eq": "§ 7"}}]} in filters
+    assert {"$and": [{"law": {"$eq": "ArbNErfG"}}, {"paragraph": {"$eq": "§ 4"}}]} in filters
+
+
 def test_non_law_sources_require_explicit_law_to_resolve():
     nodes = [_node("bfh-1", "i.V.m. § 33 Abs. 2", "VI R 32/20", law="BFH")]
     col = _mock_collection()

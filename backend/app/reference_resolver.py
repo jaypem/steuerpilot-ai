@@ -22,11 +22,11 @@ from llama_index.core.schema import NodeWithScore, TextNode
 logger = logging.getLogger(__name__)
 
 MAX_DEPTH = 2  # maximum recursion depth for reference chasing
-_RESOLVABLE_LAWS = {"EStG", "EStDV", "AO", "UStG", "SolzG", "GewStG"}
+_RESOLVABLE_LAWS = {"EStG", "EStDV", "AO", "UStG", "SolzG", "GewStG", "KStG", "ErbStG", "ArbNErfG"}
 
 # Pattern captures the paragraph number after "§", e.g. "§ 4", "§ 9a", "§ 21b"
 _PARA_PATTERN = re.compile(r"§\s*(\d+[a-zA-Z]?)")
-_LAW_PATTERN = re.compile(r"\b(EStG|EStDV|AO|UStG|SolzG|GewStG)\b")
+_LAW_PATTERN = re.compile(r"\b(EStG|EStDV|AO|UStG|SolzG|GewStG|KStG|ErbStG|ArbNErfG)\b")
 
 # Common trigger phrases that indicate a cross-reference
 _REF_TRIGGERS = re.compile(

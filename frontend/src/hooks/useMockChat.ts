@@ -24,6 +24,15 @@ export function useMockChat(options: UseMockChatOptions = {}) {
     };
   }, []);
 
+  const resetMessages = useCallback((next: Message[] = []) => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    setIsLoading(false);
+    setMessages(next);
+  }, []);
+
   const submitMessage = useCallback((text: string) => {
     if (isLoading) return;
 
@@ -88,5 +97,5 @@ export function useMockChat(options: UseMockChatOptions = {}) {
     }, WORD_INTERVAL_MS);
   }, [isLoading]);
 
-  return { messages, isLoading, submitMessage };
+  return { messages, isLoading, submitMessage, resetMessages };
 }

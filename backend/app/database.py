@@ -26,10 +26,23 @@ CREATE TABLE IF NOT EXISTS messages (
 )
 """
 
+_CREATE_IDEA_TRANSFER_CASES = """
+CREATE TABLE IF NOT EXISTS idea_transfer_cases (
+    session_id         TEXT PRIMARY KEY REFERENCES sessions(id) ON DELETE CASCADE,
+    case_kind          TEXT NOT NULL CHECK(case_kind IN ('own_gmbh_sale', 'family_transfer')),
+    status             TEXT NOT NULL CHECK(status IN ('draft', 'completed')),
+    answers_json       TEXT NOT NULL,
+    result_json        TEXT,
+    summary_message_id TEXT REFERENCES messages(id) ON DELETE SET NULL,
+    updated_at         TEXT NOT NULL
+)
+"""
+
 
 async def init_db(db: aiosqlite.Connection) -> None:
     """Create tables and enable foreign-key enforcement."""
     await db.execute("PRAGMA foreign_keys = ON")
     await db.execute(_CREATE_SESSIONS)
     await db.execute(_CREATE_MESSAGES)
+    await db.execute(_CREATE_IDEA_TRANSFER_CASES)
     await db.commit()

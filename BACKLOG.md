@@ -202,6 +202,16 @@
 
 ---
 
+## Phase 20: Spezialfall Ideen-/Erfindungs-Transfer
+
+- [x] **20.1** Rechtsquellen fuer den Spezialfall erweitern - `KStG`, `ErbStG`, `ArbNErfG` in Ingest, Parser-Mappings und Referenzaufloesung aufnehmen
+- [x] **20.2** Backend-Regelengine + API - neue Tabelle `idea_transfer_cases`, deterministische Bewertung, `GET/PUT/POST`-API und Zusammenfassungsnachricht in der Session
+- [x] **20.3** Frontend-Spezialseite - eigenstaendige `/idea-transfer`-Seite mit 5-Schritt-Flow, Ampel, Sparspanne, Dokumentenliste und Quellen
+- [x] **20.4** Chat-Onboarding + Session-Persistenz - lokale Quick Replies in neuen Sessions, Vorbelegung aus dem Chat und strukturierte Speicherung pro Session
+- [x] **20.5** Tests + Doku - Backend-Tests fuer API/Persistenz sowie PRD-/Backlog-Abgleich auf den implementierten Spezialfall
+
+---
+
 ## Abhängigkeiten
 
 ```text

@@ -56,7 +56,7 @@ function SessionTitle({
 }
 
 export default function SessionSidebar() {
-  const { sessions, activeSessionId, selectSession, newSession } =
+  const { sessions, activeSessionId, selectSession, newSession, taxYear } =
     useChatContext();
 
   return (
@@ -70,7 +70,7 @@ export default function SessionSidebar() {
           steuerpilot
         </span>
         <span className="ml-2 rounded-full bg-accent px-2 py-0.5 font-mono text-xs font-medium text-white">
-          2025
+          {taxYear}
         </span>
       </div>
 

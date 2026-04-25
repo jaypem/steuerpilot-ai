@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import type { Message } from "@/types/chat";
 import { useChatContext } from "@/context/ChatContext";
 import UserMessage from "./UserMessage";
@@ -18,12 +19,78 @@ interface MessageListProps {
 }
 
 export default function MessageList({ messages }: MessageListProps) {
-  const { submitMessage } = useChatContext();
+  const router = useRouter();
+  const {
+    submitMessage,
+    ideaTransferOnboarding,
+    answerIdeaTransferOnboarding,
+  } = useChatContext();
   const bottomRef = useRef<HTMLDivElement>(null);
+  const visibleMessages =
+    messages.length === 0 && ideaTransferOnboarding
+      ? ideaTransferOnboarding.transcript
+      : messages;
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [visibleMessages]);
+
+  if (messages.length === 0 && ideaTransferOnboarding) {
+    return (
+      <div className="flex h-full flex-col px-4 py-6">
+        <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4">
+          {ideaTransferOnboarding.transcript.map((message) =>
+            message.role === "user" ? (
+              <UserMessage key={message.id} message={message} />
+            ) : (
+              <AssistantMessage key={message.id} message={message} />
+            ),
+          )}
+
+          {ideaTransferOnboarding.quickReplies.length > 0 && (
+            <div className="flex flex-wrap gap-2 px-1">
+              {ideaTransferOnboarding.quickReplies.map((reply) => (
+                <button
+                  key={reply.id}
+                  onClick={() => answerIdeaTransferOnboarding(reply.id)}
+                  className="rounded-full border border-border bg-surface-raised px-3 py-1.5 text-xs text-muted transition-colors hover:border-accent hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                >
+                  {reply.label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {ideaTransferOnboarding.ctaHref && (
+            <div className="px-1">
+              <button
+                onClick={() => router.push(ideaTransferOnboarding.ctaHref!)}
+                className="inline-flex items-center gap-2 rounded-md bg-accent px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-accent-hover"
+              >
+                {ideaTransferOnboarding.ctaLabel ?? "Zum Ideen-Transfer-Check"}
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 12 12"
+                  fill="none"
+                  aria-hidden
+                >
+                  <path
+                    d="M4 2l4 4-4 4"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+            </div>
+          )}
+        </div>
+        <div ref={bottomRef} aria-hidden />
+      </div>
+    );
+  }
 
   if (messages.length === 0) {
     return (
@@ -65,7 +132,7 @@ export default function MessageList({ messages }: MessageListProps) {
 
   return (
     <div className="flex flex-col gap-4 px-4 py-6">
-      {messages.map((message) =>
+      {visibleMessages.map((message) =>
         message.role === "user" ? (
           <UserMessage key={message.id} message={message} />
         ) : (

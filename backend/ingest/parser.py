@@ -54,6 +54,9 @@ _URL_BASES: dict[str, str] = {
     "UStG":   "https://www.gesetze-im-internet.de/ustg_1980/",
     "SolzG":  "https://www.gesetze-im-internet.de/solzg_1995/",
     "GewStG": "https://www.gesetze-im-internet.de/gewstg/",
+    "KStG": "https://www.gesetze-im-internet.de/kstg_1977/",
+    "ErbStG": "https://www.gesetze-im-internet.de/erbstg_1974/",
+    "ArbNErfG": "https://www.gesetze-im-internet.de/arbnerfg/",
 }
 
 _PARA_RE = re.compile(r"§\s*(\d+[a-z]?)", re.IGNORECASE)

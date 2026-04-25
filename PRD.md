@@ -9,7 +9,7 @@
 
 ## 1. Zusammenfassung
 
-steuerpilot-ai ist ein KI-gestütztes Tool, das mittels Retrieval-Augmented Generation (RAG) das deutsche Steuerrecht in einen intelligenten Steuerberater-Assistenten verwandelt. Es hilft Privatpersonen und Freiberuflern dabei, ihre Steuererklärung zu optimieren — durch präzise, gesetzlich fundierte Antworten und gezielte Empfehlungen zum Abzug von Ausgaben, Freibeträgen und steuerlichen Gestaltungsmöglichkeiten.
+steuerpilot-ai ist ein KI-gestütztes Tool, das mittels Retrieval-Augmented Generation (RAG) das deutsche Steuerrecht in einen intelligenten Steuerberater-Assistenten verwandelt. Es hilft Privatpersonen, Freiberuflern und ausgewaehlten GmbH-/Familien-Spezialfaellen dabei, ihre Steuererklaerung zu optimieren - durch praezise, gesetzlich fundierte Antworten, strukturierte Spezial-Checks und gezielte Empfehlungen zum Abzug von Ausgaben, Freibetraegen und steuerlichen Gestaltungsmoeglichkeiten.
 
 ---
 
@@ -49,6 +49,8 @@ Bestehende Tools (ELSTER, Steuersoftware wie WISO/Taxfix) bieten Formulare, aber
 - Internationales Steuerrecht (DBA, Auslandseinkünfte > einfache Fälle)
 - Automatisiertes Befüllen von Formularen
 - Echtzeitanbindung an Finanzamt-Bescheide
+- Allgemeine GmbH-Beratung außerhalb des engen Spezialfalls Ideen-/Erfindungs-Transfer
+- Lizenzmodelle, Sacheinlagen, Patentbox-/IP-Box-Modelle und Auslandsstrukturen im Ideen-Transfer-Check
 
 ---
 
@@ -60,6 +62,8 @@ Bestehende Tools (ELSTER, Steuersoftware wie WISO/Taxfix) bieten Formulare, aber
 | **Freiberufler / Solo-Selbstständiger** | Hat Betriebsausgaben, Homeoffice, Fahrtkosten — komplexere Abzüge, braucht Belastbarkeit |
 | **Berufseinsteiger** | Erste Steuererklärung, braucht Erklärungen + Orientierung |
 | **Steueraffiner Power-User** | Kennt sich aus, will schnell spezifische Paragrafen und Urteile finden |
+| **GmbH-Gesellschafter / Geschäftsführer** | Prüft ausgewählte Spezialfälle wie den entgeltlichen Ideen-Transfer an die eigene GmbH |
+| **Familienvermögens-Fall** | Will strukturierte Vorprüfung für einen Ideen-/Erfindungs-Transfer innerhalb der Familie |
 
 ---
 
@@ -215,6 +219,44 @@ LlamaIndex RAG Engine + Chroma
 - Session-History in der Seitenleiste
 
 > **Deployment-Strategie:** v1 läuft vollständig lokal (`localhost:3000` Frontend, `localhost:8000` Backend). Die Architektur ist von Anfang an deployment-ready gehalten — kein lokaler State im Frontend, Backend zustandslos außer SQLite. Für ein späteres Deployment: Frontend via Vercel, Backend via Railway oder Fly.io.
+
+### 6.8 Spezialfall Ideen-/Erfindungs-Transfer-Check
+
+**Was:** Gefuehrter Spezialfall-Workflow fuer den entgeltlichen Verkauf einer privat entstandenen Idee an die eigene GmbH oder fuer einen Familien-Transfer.
+
+**Ziel:**
+
+- enger, dokumentationsabhaengiger Spezialfall wird strukturiert statt rein im Freitext geprueft
+- Ergebnis erscheint als `Ampelsystem + Sparspanne` und wird in der Session gespeichert
+- Einstieg sowohl ueber eine eigene Seite als auch ueber ein kurzes Chat-Onboarding in jeder neuen Session
+
+**Scope (v1):**
+
+- `own_gmbh_sale` - Verkauf an die eigene GmbH
+- `family_transfer` - Familien-Transfer mit Fokus auf Wertgleichheit und Schenkungsteuer-Risiko
+- deterministische Regelengine fuer die Ampel
+- strukturierte Speicherung pro Session (`draft` / `completed`)
+
+**Nicht-Scope (v1):**
+
+- keine freie LLM-Entscheidung ueber die Ampel
+- keine pauschalen Zusagen wie `steuerfrei` oder `ohne Schenkungsteuer`
+- keine Lizenzmodelle, Sacheinlagen, Auslandsfaelle, mehrere Erwerber oder Holding-Ketten
+
+**Pruefdimensionen:**
+
+- private Entstehung
+- Naehe zu Beschaeftigung oder Betrieb
+- Uebertragbarkeit und Dokumentation
+- Bewertung und Fremdvergleich
+- Nutzungsplan beim Erwerber
+- Transfer-/Schenkungsteuerrelevanz
+
+**Produktlogik:**
+
+- `own_gmbh_sale`: Sparspanne mit 25 / 30 / 35 Prozent des geplanten Kaufpreises; jaehrliche Wirkung aus dem Mittelwert geteilt durch die Nutzungsdauer
+- `family_transfer`: keine feste Euro-Sparspanne in v1; Fokus auf Ampel, Dokumente und naechste Schritte
+- nach erfolgreicher Bewertung wird zusaetzlich eine normale Assistenten-Nachricht in die Session geschrieben, damit Export, Quellen-Chips, RiskBadge und Spar-Sidebar weiter funktionieren
 
 ---
 

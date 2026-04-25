@@ -21,6 +21,9 @@ LAW_URLS: dict[str, str] = {
     # Prio 2 — Ergänzende Steuergesetze
     "SolzG":  "https://www.gesetze-im-internet.de/solzg_1995/xml.zip",
     "GewStG": "https://www.gesetze-im-internet.de/gewstg/xml.zip",
+    "KStG": "https://www.gesetze-im-internet.de/kstg_1977/xml.zip",
+    "ErbStG": "https://www.gesetze-im-internet.de/erbstg_1974/xml.zip",
+    "ArbNErfG": "https://www.gesetze-im-internet.de/arbnerfg/xml.zip",
 }
 
 

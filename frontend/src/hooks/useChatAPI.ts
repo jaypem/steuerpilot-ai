@@ -32,6 +32,12 @@ export function useChatAPI({ sessionId, taxYear, onDone }: UseChatAPIOptions = {
     setErrorMessage(null);
   }, []);
 
+  const abortStream = useCallback(() => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setIsLoading(false);
+  }, []);
+
   const submitMessage = useCallback(
     async (text: string) => {
       if (isLoading) return;
@@ -62,6 +68,7 @@ export function useChatAPI({ sessionId, taxYear, onDone }: UseChatAPIOptions = {
       const sources: Source[] = [];
       let riskBadge: RiskBadge | undefined;
       let savingAmount: number | undefined;
+      let completed = false;
 
       try {
         abortRef.current = new AbortController();
@@ -112,6 +119,7 @@ export function useChatAPI({ sessionId, taxYear, onDone }: UseChatAPIOptions = {
               break;
 
             case "done":
+              completed = true;
               setMessages((prev) =>
                 prev.map((m) =>
                   m.id === assistantId
@@ -143,7 +151,11 @@ export function useChatAPI({ sessionId, taxYear, onDone }: UseChatAPIOptions = {
             m.id === assistantId ? { ...m, isStreaming: false } : m,
           ),
         );
-        setIsLoading(false);
+      } finally {
+        abortRef.current = null;
+        if (!completed) {
+          setIsLoading(false);
+        }
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -156,6 +168,7 @@ export function useChatAPI({ sessionId, taxYear, onDone }: UseChatAPIOptions = {
     submitMessage,
     errorMessage,
     clearError,
+    abortStream,
     resetMessages,
   };
 }

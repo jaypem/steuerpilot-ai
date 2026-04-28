@@ -14,6 +14,7 @@ import type {
 } from "@/types/ideaTransfer";
 import type { Session } from "@/types/session";
 import type { ScanResult } from "@/types/scan";
+import { DOUBLE_TAX_SAVINGS_LABEL } from "./doubleTaxSavings";
 import { parseSSEStream } from "./sseParser";
 
 const API_URL =
@@ -449,7 +450,9 @@ export async function evaluateIdeaTransferCase(
   });
   if (!res.ok) {
     const text = await res.text().catch(() => res.statusText);
-    throw new Error(`Ideen-Transfer-Check fehlgeschlagen (${res.status}): ${text}`);
+    throw new Error(
+      `${DOUBLE_TAX_SAVINGS_LABEL}-Check fehlgeschlagen (${res.status}): ${text}`,
+    );
   }
   const data: APIIdeaTransferCase = await res.json();
   return mapIdeaTransferCase(data);

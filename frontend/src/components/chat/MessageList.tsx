@@ -2,6 +2,10 @@
 
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import {
+  DOUBLE_TAX_SAVINGS_LABEL,
+  DOUBLE_TAX_SAVINGS_TOOLTIP,
+} from "@/lib/doubleTaxSavings";
 import type { Message } from "@/types/chat";
 import { useChatContext } from "@/context/ChatContext";
 import UserMessage from "./UserMessage";
@@ -65,9 +69,11 @@ export default function MessageList({ messages }: MessageListProps) {
             <div className="px-1">
               <button
                 onClick={() => router.push(ideaTransferOnboarding.ctaHref!)}
+                title={DOUBLE_TAX_SAVINGS_TOOLTIP}
                 className="inline-flex items-center gap-2 rounded-md bg-accent px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-accent-hover"
               >
-                {ideaTransferOnboarding.ctaLabel ?? "Zum Ideen-Transfer-Check"}
+                {ideaTransferOnboarding.ctaLabel ??
+                  `Zum ${DOUBLE_TAX_SAVINGS_LABEL}-Check`}
                 <svg
                   width="12"
                   height="12"

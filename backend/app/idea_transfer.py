@@ -26,6 +26,9 @@ from ingest.store import COLLECTION_NAME
 
 logger = logging.getLogger(__name__)
 
+_CASE_TITLE_PREFIX = "doppelt-steuern-sparen"
+_LEGACY_CASE_TITLE_PREFIX = "Ideen-Transfer"
+
 _LAW_BASE_URLS: dict[str, str] = {
     "EStG": "https://www.gesetze-im-internet.de/estg/",
     "AO": "https://www.gesetze-im-internet.de/ao_1977/",
@@ -57,9 +60,9 @@ class _SourceRef:
 
 def case_title(case_kind: CaseKind) -> str:
     return (
-        "Ideen-Transfer GmbH"
+        f"{_CASE_TITLE_PREFIX} GmbH"
         if case_kind == "own_gmbh_sale"
-        else "Ideen-Transfer Familie"
+        else f"{_CASE_TITLE_PREFIX} Familie"
     )
 
 
@@ -462,14 +465,16 @@ async def ensure_case_session(
         """
         UPDATE sessions
         SET title = CASE
-              WHEN message_count = 0 OR title LIKE 'Ideen-Transfer%'
+              WHEN message_count = 0
+                OR title LIKE ?
+                OR title LIKE ?
               THEN ?
               ELSE title
             END,
             updated_at = ?
         WHERE id = ?
         """,
-        (title, now, session_id),
+        (f"{_CASE_TITLE_PREFIX}%", f"{_LEGACY_CASE_TITLE_PREFIX}%", title, now, session_id),
     )
     await db.commit()
 

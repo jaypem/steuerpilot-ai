@@ -3,6 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useChatContext } from "@/context/ChatContext";
+import {
+  DOUBLE_TAX_SAVINGS_LABEL,
+  DOUBLE_TAX_SAVINGS_ROUTE,
+  DOUBLE_TAX_SAVINGS_TOOLTIP,
+} from "@/lib/doubleTaxSavings";
 
 const TAX_YEARS = [2022, 2023, 2024, 2025];
 
@@ -17,6 +22,8 @@ export default function Header({
 }: HeaderProps) {
   const pathname = usePathname();
   const { taxYear, setTaxYear } = useChatContext();
+  const isDoubleTaxSavingsRoute =
+    pathname === DOUBLE_TAX_SAVINGS_ROUTE || pathname === "/idea-transfer";
 
   return (
     <header className="flex h-12 shrink-0 items-center justify-between border-b border-border bg-surface-raised px-4">
@@ -74,14 +81,15 @@ export default function Header({
             Ausgaben-Scan
           </Link>
           <Link
-            href="/idea-transfer"
+            href={DOUBLE_TAX_SAVINGS_ROUTE}
+            title={DOUBLE_TAX_SAVINGS_TOOLTIP}
             className={`rounded-md px-2.5 py-1 text-xs transition-colors ${
-              pathname === "/idea-transfer"
+              isDoubleTaxSavingsRoute
                 ? "bg-border text-foreground"
                 : "text-muted hover:bg-border hover:text-foreground"
             }`}
           >
-            Ideen-Transfer
+            {DOUBLE_TAX_SAVINGS_LABEL}
           </Link>
           <Link
             href="/instagram-check"

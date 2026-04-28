@@ -18,6 +18,11 @@ import {
   fetchSessions,
   renameSession as apiRenameSession,
 } from "@/lib/api";
+import {
+  DOUBLE_TAX_SAVINGS_INFO_URL,
+  DOUBLE_TAX_SAVINGS_LABEL,
+  DOUBLE_TAX_SAVINGS_ROUTE,
+} from "@/lib/doubleTaxSavings";
 import { getMockIdeaTransferCase } from "@/lib/mockIdeaTransfer";
 import {
   fetchMockTaxPrepItems,
@@ -39,7 +44,8 @@ const IDEA_TRANSFER_QUESTION_1 =
   "Gab es in diesem Steuerjahr eine Idee oder Erfindung oder einen geplanten Verkauf an die eigene GmbH oder in der Familie?";
 const IDEA_TRANSFER_QUESTION_2 =
   "Ist die Idee privat entstanden oder im Rahmen von Anstellung oder Selbststaendigkeit?";
-const IDEA_TRANSFER_SESSION_PREFIX = "Ideen-Transfer";
+const IDEA_TRANSFER_SESSION_PREFIX = DOUBLE_TAX_SAVINGS_LABEL;
+const LEGACY_IDEA_TRANSFER_SESSION_PREFIX = "Ideen-Transfer";
 
 const INITIAL_MESSAGES: Message[] = [
   {
@@ -174,12 +180,17 @@ function createLocalMessage(
 
 function caseTitle(caseKind: IdeaTransferCaseKind): string {
   return caseKind === "own_gmbh_sale"
-    ? "Ideen-Transfer GmbH"
-    : "Ideen-Transfer Familie";
+    ? `${DOUBLE_TAX_SAVINGS_LABEL} GmbH`
+    : `${DOUBLE_TAX_SAVINGS_LABEL} Familie`;
 }
 
 function inferCaseKindFromTitle(title?: string): IdeaTransferCaseKind | undefined {
-  if (!title?.startsWith(IDEA_TRANSFER_SESSION_PREFIX)) return undefined;
+  if (
+    !title?.startsWith(IDEA_TRANSFER_SESSION_PREFIX) &&
+    !title?.startsWith(LEGACY_IDEA_TRANSFER_SESSION_PREFIX)
+  ) {
+    return undefined;
+  }
   if (title.includes("Familie")) return "family_transfer";
   return "own_gmbh_sale";
 }
@@ -193,7 +204,7 @@ function buildIdeaTransferHref(
     params.set("origin_scope", prefill.answers.originScope);
   }
   const query = params.toString();
-  return query ? `/idea-transfer?${query}` : "/idea-transfer";
+  return query ? `${DOUBLE_TAX_SAVINGS_ROUTE}?${query}` : DOUBLE_TAX_SAVINGS_ROUTE;
 }
 
 function createInitialOnboardingRecord(
@@ -208,7 +219,7 @@ function createInitialOnboardingRecord(
         createLocalMessage(
           sessionId,
           "assistant",
-          "Zu dieser Session gehoert bereits ein Ideen- oder Erfindungs-Transfer-Fall. Oeffnen Sie den strukturierten Check, um Angaben zu pruefen oder zu ergaenzen.",
+          `Zu dieser Session gehoert bereits ein [${DOUBLE_TAX_SAVINGS_LABEL}](${DOUBLE_TAX_SAVINGS_INFO_URL})-Fall. Oeffnen Sie den strukturierten Check, um Angaben zu pruefen oder zu ergaenzen.`,
         ),
       ],
       prefill: { caseKind, answers: {} },
@@ -254,7 +265,7 @@ function toOnboardingView(
     transcript: record.transcript,
     quickReplies: [],
     ctaHref: buildIdeaTransferHref(record.prefill),
-    ctaLabel: "Zum Ideen-Transfer-Check",
+    ctaLabel: `Zum ${DOUBLE_TAX_SAVINGS_LABEL}-Check`,
   };
 }
 

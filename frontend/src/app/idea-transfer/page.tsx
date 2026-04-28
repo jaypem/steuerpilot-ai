@@ -8,6 +8,11 @@ import SourceChip from "@/components/chat/SourceChip";
 import AppShell from "@/components/layout/AppShell";
 import { useChatContext } from "@/context/ChatContext";
 import {
+  DOUBLE_TAX_SAVINGS_INFO_URL,
+  DOUBLE_TAX_SAVINGS_LABEL,
+  DOUBLE_TAX_SAVINGS_TOOLTIP,
+} from "@/lib/doubleTaxSavings";
+import {
   evaluateIdeaTransferCase,
   fetchIdeaTransferCase,
   saveIdeaTransferDraft,
@@ -276,7 +281,7 @@ function IdeaTransferPageContent() {
         setError(
           err instanceof Error
             ? err.message
-            : "Ideen-Transfer-Fall konnte nicht geladen werden.",
+            : `${DOUBLE_TAX_SAVINGS_LABEL}-Fall konnte nicht geladen werden.`,
         );
       } finally {
         if (!cancelled) {
@@ -470,23 +475,43 @@ function IdeaTransferPageContent() {
                 Chat
               </Link>
               <span>·</span>
-              <span>Ideen-Transfer-Check</span>
+              <a
+                href={DOUBLE_TAX_SAVINGS_INFO_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={DOUBLE_TAX_SAVINGS_TOOLTIP}
+                className="hover:text-foreground"
+              >
+                {DOUBLE_TAX_SAVINGS_LABEL}
+              </a>
             </div>
             <h1 className="mt-1 text-base font-semibold text-foreground">
-              Ideen-/Erfindungs-Transfer-Check
+              {DOUBLE_TAX_SAVINGS_LABEL}
             </h1>
             <p className="mt-1 max-w-2xl text-xs leading-relaxed text-muted">
-              Strukturierter Vorab-Check fuer den Verkauf einer privat
-              entstandenen Idee an die eigene GmbH oder fuer einen
+              Der strukturierte Check fuer Ideen-Transfer GmbH und
               Familien-Transfer. Ausgabe als Ampel, Dokumentationsbedarf und
-              Sparspanne unter Annahmen.
+              Sparspanne unter Annahmen. Mehr Kontext auf{" "}
+              <a
+                href={DOUBLE_TAX_SAVINGS_INFO_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={DOUBLE_TAX_SAVINGS_TOOLTIP}
+                className="text-accent underline hover:text-accent-hover"
+              >
+                {DOUBLE_TAX_SAVINGS_LABEL}
+              </a>
+              .
             </p>
           </div>
           <div className="flex items-center gap-2">
             <span className="rounded-full bg-accent-subtle px-2 py-0.5 font-mono text-xs font-medium text-accent">
               {taxYear}
             </span>
-            <span className="rounded-full border border-border px-2 py-0.5 font-mono text-xs text-muted">
+            <span
+              title={DOUBLE_TAX_SAVINGS_TOOLTIP}
+              className="rounded-full border border-border px-2 py-0.5 font-mono text-xs text-muted"
+            >
               {caseTitle(caseKind)}
             </span>
           </div>
@@ -530,7 +555,7 @@ function IdeaTransferPageContent() {
 
           {isLoadingCase ? (
             <div className="rounded-2xl border border-border bg-surface-raised px-5 py-6 text-sm text-muted">
-              Ideen-Transfer-Fall wird geladen...
+              {DOUBLE_TAX_SAVINGS_LABEL}-Fall wird geladen...
             </div>
           ) : (
             <div className="space-y-5">
@@ -1203,7 +1228,7 @@ export default function IdeaTransferPage() {
       <Suspense
         fallback={
           <div className="flex h-full items-center justify-center bg-surface px-4 text-sm text-muted">
-            Ideen-Transfer-Check wird geladen...
+            {DOUBLE_TAX_SAVINGS_LABEL}-Check wird geladen...
           </div>
         }
       >

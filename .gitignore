@@ -220,6 +220,9 @@ backend/chroma_db/
 # SQLite
 backend/*.db
 
+# User-uploaded screenshots
+backend/uploads/
+
 # ML-Modelle (zu groß für Git)
 backend/models/
 

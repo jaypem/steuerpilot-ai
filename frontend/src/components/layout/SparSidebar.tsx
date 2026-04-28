@@ -33,7 +33,7 @@ function AnimatedNumber({ value }: { value: number }) {
 }
 
 export default function SparSidebar() {
-  const { totalSaving, savingEntries } = useChatContext();
+  const { totalSaving, savingEntries, taxPrepItems } = useChatContext();
 
   return (
     <aside
@@ -58,7 +58,7 @@ export default function SparSidebar() {
 
       {/* Positions-Liste */}
       <div className="flex-1 overflow-y-auto px-4 py-4">
-        {savingEntries.length === 0 ? (
+        {savingEntries.length === 0 && taxPrepItems.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-saving-subtle">
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden>
@@ -77,42 +77,82 @@ export default function SparSidebar() {
             </p>
           </div>
         ) : (
-          <ul className="flex flex-col gap-2">
-            {savingEntries.map((entry, i) => (
-              <li
-                key={i}
-                className="rounded-lg border border-border bg-surface p-3"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <p className="text-xs leading-relaxed text-foreground line-clamp-2">
-                    {entry.label}
-                  </p>
-                  <span className="shrink-0 font-mono text-sm font-semibold text-saving">
-                    {entry.amount.toLocaleString("de-DE")} €
-                  </span>
-                </div>
-                <div className="mt-1.5 flex items-center gap-1">
-                  <span
-                    className={`h-1.5 w-1.5 rounded-full ${
-                      entry.riskLevel === "low"
-                        ? "bg-risk-low"
-                        : entry.riskLevel === "medium"
-                          ? "bg-risk-medium"
-                          : "bg-risk-high"
-                    }`}
-                    aria-hidden
-                  />
-                  <span className="text-xs text-muted">
-                    {entry.riskLevel === "low"
-                      ? "Unstreitig"
-                      : entry.riskLevel === "medium"
-                        ? "Grauzone"
-                        : "Strittig"}
-                  </span>
-                </div>
-              </li>
-            ))}
-          </ul>
+          <div className="space-y-5">
+            {savingEntries.length > 0 && (
+              <section>
+                <p className="mb-2 text-xs font-medium uppercase tracking-wider text-muted">
+                  Empfehlungen
+                </p>
+                <ul className="flex flex-col gap-2">
+                  {savingEntries.map((entry, i) => (
+                    <li
+                      key={i}
+                      className="rounded-lg border border-border bg-surface p-3"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-xs leading-relaxed text-foreground line-clamp-2">
+                          {entry.label}
+                        </p>
+                        <span className="shrink-0 font-mono text-sm font-semibold text-saving">
+                          {entry.amount.toLocaleString("de-DE")} €
+                        </span>
+                      </div>
+                      <div className="mt-1.5 flex items-center gap-1">
+                        <span
+                          className={`h-1.5 w-1.5 rounded-full ${
+                            entry.riskLevel === "low"
+                              ? "bg-risk-low"
+                              : entry.riskLevel === "medium"
+                                ? "bg-risk-medium"
+                                : "bg-risk-high"
+                          }`}
+                          aria-hidden
+                        />
+                        <span className="text-xs text-muted">
+                          {entry.riskLevel === "low"
+                            ? "Unstreitig"
+                            : entry.riskLevel === "medium"
+                              ? "Grauzone"
+                              : "Strittig"}
+                        </span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+
+            {taxPrepItems.length > 0 && (
+              <section>
+                <p className="mb-2 text-xs font-medium uppercase tracking-wider text-muted">
+                  Übernommene Steuerchancen
+                </p>
+                <ul className="flex flex-col gap-2">
+                  {taxPrepItems.map((item) => (
+                    <li
+                      key={item.id}
+                      className="rounded-lg border border-border bg-surface p-3"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-xs leading-relaxed text-foreground line-clamp-2">
+                          {item.title}
+                        </p>
+                        <span className="shrink-0 font-mono text-sm font-semibold text-saving">
+                          {item.estimatedSavingEur != null
+                            ? `${item.estimatedSavingEur.toLocaleString("de-DE")} €`
+                            : "—"}
+                        </span>
+                      </div>
+                      <div className="mt-1.5 flex items-center gap-1">
+                        <span className="h-1.5 w-1.5 rounded-full bg-risk-low" aria-hidden />
+                        <span className="text-xs text-muted">Instagram-Check</span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+          </div>
         )}
       </div>
 

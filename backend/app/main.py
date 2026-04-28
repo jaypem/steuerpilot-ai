@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.database import DB_PATH, init_db
-from app.routers import chat, health, idea_transfer, scan, sessions
+from app.routers import chat, health, idea_transfer, instagram_check, scan, sessions
 
 settings = get_settings()
 
@@ -48,4 +48,5 @@ app.include_router(health.router)
 app.include_router(chat.router)
 app.include_router(sessions.router)
 app.include_router(idea_transfer.router)
+app.include_router(instagram_check.router)
 app.include_router(scan.router)

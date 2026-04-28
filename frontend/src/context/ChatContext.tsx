@@ -12,14 +12,19 @@ import {
 import { useChatAPI } from "@/hooks/useChatAPI";
 import { useMockChat } from "@/hooks/useMockChat";
 import {
+  fetchTaxPrepItems,
   deleteSession as apiDeleteSession,
   fetchSessionMessages,
   fetchSessions,
   renameSession as apiRenameSession,
 } from "@/lib/api";
 import { getMockIdeaTransferCase } from "@/lib/mockIdeaTransfer";
+import {
+  fetchMockTaxPrepItems,
+} from "@/lib/mockInstagramCheck";
 import { MOCK_SESSIONS } from "@/lib/mockSessions";
 import type { Message, RiskBadge } from "@/types/chat";
+import type { TaxPrepItem } from "@/types/instagramCheck";
 import type {
   IdeaTransferAnswers,
   IdeaTransferCaseKind,
@@ -119,6 +124,8 @@ interface ChatContextValue {
   isMockMode: boolean;
   refreshSessions: () => Promise<void>;
   reloadActiveSession: () => Promise<void>;
+  taxPrepItems: TaxPrepItem[];
+  refreshTaxPrepItems: () => Promise<void>;
   ideaTransferOnboarding: IdeaTransferOnboardingView | null;
   answerIdeaTransferOnboarding: (choiceId: string) => void;
 }
@@ -389,6 +396,34 @@ function buildIdeaTransferSummaryMessage(
   };
 }
 
+function buildInstagramPrepSummaryMessage(
+  sessionId: string,
+  items: TaxPrepItem[],
+): Message {
+  const total = items.reduce((sum, item) => sum + (item.estimatedSavingEur ?? 0), 0);
+  const lines = [
+    "## Instagram-Check: uebernommene Steuerchancen",
+    "",
+    `**Bestaetigte Tipps:** ${items.length}`,
+    `**Geschaetzte Gesamtersparnis:** ${total.toLocaleString("de-DE")} EUR`,
+    "",
+    ...items.map((item) => `- **${item.title}:** ${item.summary}`),
+  ];
+
+  return {
+    id: `instagram-summary-${sessionId}`,
+    role: "assistant",
+    content: lines.join("\n"),
+    riskBadge: {
+      level: "low",
+      label: "Vorpruefung uebernommen",
+      explanation: "Nur gruene und bestaetigte Instagram-Tipps wurden uebernommen.",
+    },
+    savingAmount: total || undefined,
+    timestamp: new Date(),
+  };
+}
+
 function MockProvider({ children }: { children: React.ReactNode }) {
   const [sessions, setSessions] = useState<Session[]>(MOCK_SESSIONS);
   const [activeSessionId, setActiveSessionId] = useState<string>(
@@ -396,6 +431,7 @@ function MockProvider({ children }: { children: React.ReactNode }) {
   );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [taxYear, setTaxYear] = useState(2025);
+  const [taxPrepItems, setTaxPrepItems] = useState<TaxPrepItem[]>([]);
   const [onboardingBySession, setOnboardingBySession] = useState<
     Record<string, IdeaTransferOnboardingRecord>
   >({});
@@ -422,6 +458,12 @@ function MockProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
+      const prepItems = await fetchMockTaxPrepItems(sessionId);
+      if (prepItems.length > 0) {
+        resetMessages([buildInstagramPrepSummaryMessage(sessionId, prepItems)]);
+        return;
+      }
+
       resetMessages(demoSessionIds.has(sessionId) ? INITIAL_MESSAGES : []);
     },
     [demoSessionIds, resetMessages],
@@ -429,12 +471,28 @@ function MockProvider({ children }: { children: React.ReactNode }) {
 
   const { savingEntries, totalSaving } = useSavingDerived(messages);
 
+  const refreshTaxPrepItems = useCallback(async () => {
+    setTaxPrepItems(await fetchMockTaxPrepItems(activeSessionId));
+  }, [activeSessionId]);
+
   const refreshSessions = useCallback(async () => {
     const nextSessions = await Promise.all(
       sessions.map(async (session) => {
         const ideaCase = await getMockIdeaTransferCase(session.id);
+        const prepItems = await fetchMockTaxPrepItems(session.id);
+        const prepSaving = prepItems.reduce(
+          (sum, item) => sum + (item.estimatedSavingEur ?? 0),
+          0,
+        );
         if (!ideaCase) {
-          return session;
+          return prepItems.length > 0
+            ? {
+                ...session,
+                title: session.title === "Neue Konversation" ? "Instagram-Check" : session.title,
+                messageCount: 1,
+                totalSaving: prepSaving || undefined,
+              }
+            : session;
         }
         return {
           ...session,
@@ -449,13 +507,15 @@ function MockProvider({ children }: { children: React.ReactNode }) {
 
   const reloadActiveSession = useCallback(async () => {
     await loadMockSessionMessages(activeSessionId);
-  }, [activeSessionId, loadMockSessionMessages]);
+    await refreshTaxPrepItems();
+  }, [activeSessionId, loadMockSessionMessages, refreshTaxPrepItems]);
 
   const selectSession = useCallback(
     (id: string) => {
       clearError();
       setActiveSessionId(id);
       void loadMockSessionMessages(id);
+      void fetchMockTaxPrepItems(id).then(setTaxPrepItems);
     },
     [clearError, loadMockSessionMessages],
   );
@@ -468,6 +528,7 @@ function MockProvider({ children }: { children: React.ReactNode }) {
       ...prev,
     ]);
     setActiveSessionId(id);
+    setTaxPrepItems([]);
     resetMessages([]);
   }, [clearError, resetMessages]);
 
@@ -496,6 +557,7 @@ function MockProvider({ children }: { children: React.ReactNode }) {
       if (activeSessionId === id) {
         setActiveSessionId(fallbackSession.id);
         void loadMockSessionMessages(fallbackSession.id);
+        void fetchMockTaxPrepItems(fallbackSession.id).then(setTaxPrepItems);
       }
     },
     [activeSessionId, loadMockSessionMessages, sessions],
@@ -561,6 +623,8 @@ function MockProvider({ children }: { children: React.ReactNode }) {
         isMockMode: true,
         refreshSessions,
         reloadActiveSession,
+        taxPrepItems,
+        refreshTaxPrepItems,
         ideaTransferOnboarding,
         answerIdeaTransferOnboarding,
       }}
@@ -577,6 +641,7 @@ function APIProvider({ children }: { children: React.ReactNode }) {
   );
   const [extraError, setExtraError] = useState<string | null>(null);
   const [taxYear, setTaxYear] = useState(2025);
+  const [taxPrepItems, setTaxPrepItems] = useState<TaxPrepItem[]>([]);
   const [onboardingBySession, setOnboardingBySession] = useState<
     Record<string, IdeaTransferOnboardingRecord>
   >({});
@@ -629,12 +694,27 @@ function APIProvider({ children }: { children: React.ReactNode }) {
     [sessionsWithStats, activeSessionId],
   );
 
+  const refreshTaxPrepItems = useCallback(async () => {
+    try {
+      setTaxPrepItems(await fetchTaxPrepItems(activeSessionId));
+    } catch (err) {
+      setExtraError(
+        err instanceof Error
+          ? err.message
+          : "Steuerchancen konnten nicht geladen werden",
+      );
+    }
+  }, [activeSessionId]);
+
   const cancelSessionLoad = useCallback(() => {
     sessionLoadRef.current?.abort();
     sessionLoadRef.current = null;
   }, []);
 
   useEffect(() => cancelSessionLoad, [cancelSessionLoad]);
+  useEffect(() => {
+    void refreshTaxPrepItems();
+  }, [refreshTaxPrepItems]);
 
   const loadSessionMessages = useCallback(
     async (
@@ -688,7 +768,8 @@ function APIProvider({ children }: { children: React.ReactNode }) {
 
   const reloadActiveSession = useCallback(async () => {
     await loadSessionMessages(activeSessionId, { suppressNotFound: true });
-  }, [activeSessionId, loadSessionMessages]);
+    await refreshTaxPrepItems();
+  }, [activeSessionId, loadSessionMessages, refreshTaxPrepItems]);
 
   const newSession = useCallback(() => {
     abortStream();
@@ -696,6 +777,7 @@ function APIProvider({ children }: { children: React.ReactNode }) {
     clearError();
     const id = crypto.randomUUID();
     setActiveSessionId(id);
+    setTaxPrepItems([]);
     resetMessages([]);
   }, [abortStream, cancelSessionLoad, clearError, resetMessages]);
 
@@ -723,6 +805,7 @@ function APIProvider({ children }: { children: React.ReactNode }) {
         clearError();
         const next = crypto.randomUUID();
         setActiveSessionId(next);
+        setTaxPrepItems([]);
         resetMessages([]);
       }
     },
@@ -786,6 +869,8 @@ function APIProvider({ children }: { children: React.ReactNode }) {
         isMockMode: false,
         refreshSessions,
         reloadActiveSession,
+        taxPrepItems,
+        refreshTaxPrepItems,
         ideaTransferOnboarding,
         answerIdeaTransferOnboarding,
       }}

@@ -83,6 +83,16 @@ export default function Header({
           >
             Ideen-Transfer
           </Link>
+          <Link
+            href="/instagram-check"
+            className={`rounded-md px-2.5 py-1 text-xs transition-colors ${
+              pathname === "/instagram-check"
+                ? "bg-border text-foreground"
+                : "text-muted hover:bg-border hover:text-foreground"
+            }`}
+          >
+            Instagram-Check
+          </Link>
         </nav>
       </div>
 

@@ -1,5 +1,12 @@
 import type { Message, RiskBadge, Source } from "@/types/chat";
 import type {
+  InstagramCheckSavePayload,
+  InstagramClaim,
+  InstagramEvaluatedTip,
+  InstagramPostCheck,
+  TaxPrepItem,
+} from "@/types/instagramCheck";
+import type {
   IdeaTransferAnswers,
   IdeaTransferCase,
   IdeaTransferCaseKind,
@@ -109,6 +116,70 @@ interface APIIdeaTransferCase {
   updated_at: string;
 }
 
+interface APIInstagramImageRef {
+  id: string;
+  original_filename: string;
+  stored_path: string;
+  content_type: string;
+  size_bytes: number;
+}
+
+interface APIInstagramFollowUpQuestion {
+  id: string;
+  prompt: string;
+  answer?: string | null;
+}
+
+interface APIInstagramClaim {
+  id: string;
+  raw_text: string;
+  edited_text: string;
+  category: InstagramClaim["category"];
+  return_bucket: InstagramClaim["returnBucket"];
+  status: InstagramClaim["status"];
+  selected_for_import: boolean;
+  follow_up_questions: APIInstagramFollowUpQuestion[];
+}
+
+interface APIInstagramEvaluatedTip {
+  claim_id: string;
+  title: string;
+  normalized_tip: string;
+  category: InstagramEvaluatedTip["category"];
+  return_bucket: InstagramEvaluatedTip["returnBucket"];
+  traffic_light: InstagramEvaluatedTip["trafficLight"];
+  explanation: string;
+  estimated_saving_eur: number | null;
+  required_evidence: string[];
+  sources: Source[];
+}
+
+interface APIInstagramPostCheck {
+  session_id: string;
+  status: InstagramPostCheck["status"];
+  images: APIInstagramImageRef[];
+  claims: APIInstagramClaim[];
+  evaluated_tips: APIInstagramEvaluatedTip[] | null;
+  updated_at: string;
+}
+
+interface APITaxPrepItem {
+  id: string;
+  session_id: string;
+  source: TaxPrepItem["source"];
+  source_claim_id: string;
+  title: string;
+  category: TaxPrepItem["category"];
+  return_bucket: TaxPrepItem["returnBucket"];
+  estimated_saving_eur: number | null;
+  risk_level: TaxPrepItem["riskLevel"];
+  required_evidence: string[];
+  summary: string;
+  status: TaxPrepItem["status"];
+  created_at: string;
+  updated_at: string;
+}
+
 // ─── Mappers ──────────────────────────────────────────────────────────────────
 
 function mapSession(s: APISession): Session {
@@ -176,6 +247,68 @@ function mapIdeaTransferCase(apiCase: APIIdeaTransferCase): IdeaTransferCase {
     },
     result: apiCase.result ? mapIdeaTransferResult(apiCase.result) : null,
     updatedAt: new Date(apiCase.updated_at),
+  };
+}
+
+function mapInstagramCheck(apiCheck: APIInstagramPostCheck): InstagramPostCheck {
+  return {
+    sessionId: apiCheck.session_id,
+    status: apiCheck.status,
+    images: apiCheck.images.map((image) => ({
+      id: image.id,
+      originalFilename: image.original_filename,
+      storedPath: image.stored_path,
+      contentType: image.content_type,
+      sizeBytes: image.size_bytes,
+    })),
+    claims: apiCheck.claims.map((claim) => ({
+      id: claim.id,
+      rawText: claim.raw_text,
+      editedText: claim.edited_text,
+      category: claim.category,
+      returnBucket: claim.return_bucket,
+      status: claim.status,
+      selectedForImport: claim.selected_for_import,
+      followUpQuestions: claim.follow_up_questions.map((question) => ({
+        id: question.id,
+        prompt: question.prompt,
+        answer: question.answer ?? null,
+      })),
+    })),
+    evaluatedTips: apiCheck.evaluated_tips
+      ? apiCheck.evaluated_tips.map((tip) => ({
+          claimId: tip.claim_id,
+          title: tip.title,
+          normalizedTip: tip.normalized_tip,
+          category: tip.category,
+          returnBucket: tip.return_bucket,
+          trafficLight: tip.traffic_light,
+          explanation: tip.explanation,
+          estimatedSavingEur: tip.estimated_saving_eur,
+          requiredEvidence: tip.required_evidence,
+          sources: tip.sources,
+        }))
+      : null,
+    updatedAt: new Date(apiCheck.updated_at),
+  };
+}
+
+function mapTaxPrepItem(item: APITaxPrepItem): TaxPrepItem {
+  return {
+    id: item.id,
+    sessionId: item.session_id,
+    source: item.source,
+    sourceClaimId: item.source_claim_id,
+    title: item.title,
+    category: item.category,
+    returnBucket: item.return_bucket,
+    estimatedSavingEur: item.estimated_saving_eur,
+    riskLevel: item.risk_level,
+    requiredEvidence: item.required_evidence,
+    summary: item.summary,
+    status: item.status,
+    createdAt: new Date(item.created_at),
+    updatedAt: new Date(item.updated_at),
   };
 }
 
@@ -258,6 +391,24 @@ function toIdeaTransferPayload(
   };
 }
 
+function toInstagramCheckPayload(payload: InstagramCheckSavePayload) {
+  return {
+    claims: payload.claims.map((claim) => ({
+      id: claim.id,
+      edited_text: claim.editedText,
+      category: claim.category,
+      return_bucket: claim.returnBucket,
+      status: claim.status,
+      selected_for_import: claim.selectedForImport,
+      follow_up_questions: claim.followUpQuestions.map((question) => ({
+        id: question.id,
+        prompt: question.prompt,
+        answer: question.answer ?? null,
+      })),
+    })),
+  };
+}
+
 export async function fetchIdeaTransferCase(sessionId: string): Promise<IdeaTransferCase | null> {
   const res = await fetch(`${API_URL}/api/idea-transfer/${sessionId}`);
   if (res.status === 404) return null;
@@ -302,6 +453,81 @@ export async function evaluateIdeaTransferCase(
   }
   const data: APIIdeaTransferCase = await res.json();
   return mapIdeaTransferCase(data);
+}
+
+export async function analyzeInstagramCheck(
+  sessionId: string,
+  taxYear: number,
+  images: File[],
+): Promise<InstagramPostCheck> {
+  const formData = new FormData();
+  formData.set("session_id", sessionId);
+  formData.set("tax_year", String(taxYear));
+  for (const image of images) {
+    formData.append("images", image);
+  }
+
+  const res = await fetch(`${API_URL}/api/instagram-check/analyze`, {
+    method: "POST",
+    body: formData,
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => res.statusText);
+    throw new Error(`Instagram-Check fehlgeschlagen (${res.status}): ${text}`);
+  }
+  const data: APIInstagramPostCheck = await res.json();
+  return mapInstagramCheck(data);
+}
+
+export async function fetchInstagramCheck(
+  sessionId: string,
+): Promise<InstagramPostCheck | null> {
+  const res = await fetch(`${API_URL}/api/instagram-check/${sessionId}`);
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const data: APIInstagramPostCheck = await res.json();
+  return mapInstagramCheck(data);
+}
+
+export async function saveInstagramCheck(
+  sessionId: string,
+  payload: InstagramCheckSavePayload,
+): Promise<InstagramPostCheck> {
+  const res = await fetch(`${API_URL}/api/instagram-check/${sessionId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(toInstagramCheckPayload(payload)),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => res.statusText);
+    throw new Error(`Instagram-Check konnte nicht gespeichert werden (${res.status}): ${text}`);
+  }
+  const data: APIInstagramPostCheck = await res.json();
+  return mapInstagramCheck(data);
+}
+
+export async function evaluateInstagramCheck(
+  sessionId: string,
+  taxYear: number,
+): Promise<InstagramPostCheck> {
+  const res = await fetch(`${API_URL}/api/instagram-check/evaluate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ session_id: sessionId, tax_year: taxYear }),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => res.statusText);
+    throw new Error(`Instagram-Check Bewertung fehlgeschlagen (${res.status}): ${text}`);
+  }
+  const data: APIInstagramPostCheck = await res.json();
+  return mapInstagramCheck(data);
+}
+
+export async function fetchTaxPrepItems(sessionId: string): Promise<TaxPrepItem[]> {
+  const res = await fetch(`${API_URL}/api/tax-prep/${sessionId}`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const data: APITaxPrepItem[] = await res.json();
+  return data.map(mapTaxPrepItem);
 }
 
 export async function scanExpenses(

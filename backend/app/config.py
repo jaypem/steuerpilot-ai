@@ -27,6 +27,9 @@ class Settings(BaseSettings):
     # RAG — Chroma vector store path (relative to backend working directory)
     chroma_path: str = "chroma_db"
 
+    # Local file storage for user-provided images (gitignored)
+    upload_path: str = "uploads"
+
     # RAG — HyDE: generate a hypothetical answer before embedding the query
     hyde_enabled: bool = False
 

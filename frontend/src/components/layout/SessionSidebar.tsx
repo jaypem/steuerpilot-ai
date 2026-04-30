@@ -56,7 +56,7 @@ function SessionTitle({
 }
 
 export default function SessionSidebar() {
-  const { sessions, activeSessionId, selectSession, newSession, taxYear } =
+  const { sessions, activeSessionId, selectSession, newSession, taxYear, setTaxYear } =
     useChatContext();
 
   return (
@@ -69,9 +69,16 @@ export default function SessionSidebar() {
         <span className="font-mono text-sm font-semibold tracking-tight text-white">
           steuerpilot
         </span>
-        <span className="ml-2 rounded-full bg-accent px-2 py-0.5 font-mono text-xs font-medium text-white">
-          {taxYear}
-        </span>
+        <select
+          value={taxYear}
+          onChange={(e) => setTaxYear(Number(e.target.value))}
+          aria-label="Steuerjahr auswählen"
+          className="ml-auto rounded-full bg-accent px-2 py-0.5 font-mono text-xs font-medium text-white cursor-pointer appearance-none text-center"
+        >
+          {[2023, 2024, 2025].map((y) => (
+            <option key={y} value={y}>{y}</option>
+          ))}
+        </select>
       </div>
 
       {/* Neue Konversation */}
@@ -108,11 +115,10 @@ export default function SessionSidebar() {
                 <button
                   onClick={() => selectSession(session.id)}
                   aria-current={isActive ? "page" : undefined}
-                  className={`group flex w-full flex-col rounded-md px-3 py-2 text-left transition-colors ${
-                    isActive
+                  className={`group flex w-full flex-col rounded-md px-3 py-2 text-left transition-colors ${isActive
                       ? "bg-sidebar-item-active text-white"
                       : "text-sidebar-text hover:bg-sidebar-item hover:text-sidebar-text-active"
-                  }`}
+                    }`}
                 >
                   <SessionTitle id={session.id} title={session.title} />
                   <div className="mt-0.5 flex items-center justify-between gap-2">

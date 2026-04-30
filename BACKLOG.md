@@ -188,17 +188,17 @@
 
 ---
 
-## Phase 19: LStR HTML-Scraper
-
-- [ ] **19.1** LStR-Scraper auf HTML umschreiben — BMF stellt LStR 2023 nicht mehr als PDF bereit, nur noch als HTML unter `lsth.bundesfinanzministerium.de/lsth/2023/home.html`. Scraper in `ingest/scrapers/lstr.py` muss von `pdfplumber` auf HTML-Parsing (BeautifulSoup) umgestellt werden. Registry-URL in `ingest/scrapers/registry.py` entsprechend aktualisieren.
-
----
-
 ## Phase 18: Frontend-Features
 
 - [ ] **18.1** Chat-Export — Konversation als PDF oder Markdown herunterladen (inkl. Quellenangaben)
-- [ ] **18.2** Steuerjahr-Umschalter im Frontend — aktuell hartkodiert auf 2025; Dropdown für Nachveranlagungen
-- [ ] **18.3** Session umbenennen — auto-generierter Name durch Nutzer editierbar
+- [x] **18.2** Steuerjahr-Umschalter im Frontend — Dropdown in SessionSidebar für 2023/2024/2025, verdrahtet mit `setTaxYear` aus ChatContext
+- [x] **18.3** Session umbenennen — auto-generierter Name durch Nutzer editierbar (Doppelklick in SessionSidebar, Enter/Escape/Blur)
+
+---
+
+## Phase 19: LStR HTML-Scraper
+
+- [ ] **19.1** LStR-Scraper auf HTML umschreiben — BMF stellt LStR 2023 nicht mehr als PDF bereit, nur noch als HTML unter `lsth.bundesfinanzministerium.de/lsth/2023/home.html`. Scraper in `ingest/scrapers/lstr.py` muss von `pdfplumber` auf HTML-Parsing (BeautifulSoup) umgestellt werden. Registry-URL in `ingest/scrapers/registry.py` entsprechend aktualisieren.
 
 ---
 
@@ -209,6 +209,20 @@
 - [x] **20.3** Frontend-Spezialseite - eigenstaendige `/idea-transfer`-Seite mit 5-Schritt-Flow, Ampel, Sparspanne, Dokumentenliste und Quellen
 - [x] **20.4** Chat-Onboarding + Session-Persistenz - lokale Quick Replies in neuen Sessions, Vorbelegung aus dem Chat und strukturierte Speicherung pro Session
 - [x] **20.5** Tests + Doku - Backend-Tests fuer API/Persistenz sowie PRD-/Backlog-Abgleich auf den implementierten Spezialfall
+
+---
+
+## Phase 21: Instagram-Post-Check
+
+- [x] **21.1** Rechtsquellen & Modelle — Pydantic-Schemas `InstagramClaim`, `InstagramEvaluatedTip`, `InstagramPostCheck`, `TaxPrepItem` in `app/models/instagram_check.py`; Kategorien (`TipCategory`) und Steuererklärungsfelder (`ReturnBucket`) als Literale
+- [x] **21.2** Bild-Upload & KI-Analyse — `POST /api/instagram-check/analyze` nimmt Multipart-Upload (ein oder mehrere Bilder), extrahiert steuerrelevante Tipps via Vision-LLM und legt `InstagramClaim`-Objekte mit Follow-up-Fragen an; Bilder werden lokal unter `upload_path` gespeichert
+- [x] **21.3** Claim-Verwaltung — `GET /api/instagram-check/{session_id}` lädt bestehenden Check; `PUT /api/instagram-check/{session_id}` speichert editierte Claims (Text, Kategorie, Bucket, Status, Follow-up-Antworten)
+- [x] **21.4** RAG-Bewertung — `POST /api/instagram-check/evaluate` bewertet ausgewählte Claims gegen die Wissensbasis (EStG, BFH, BMF), gibt Ampelfarbe, Erklärung, Sparpotenzial und benötigte Belege zurück
+- [x] **21.5** TaxPrep-Export — `GET /api/tax-prep/{session_id}` gibt strukturierte `TaxPrepItem`-Liste aus bestätigten Tipps zurück (Quelle, Kategorie, Risiko, Belege)
+- [x] **21.6** Datenbankschema — Tabellen `instagram_checks`, `instagram_images`, `instagram_claims`, `instagram_follow_up_questions`, `instagram_evaluated_tips`, `tax_prep_items` in `app/database.py`
+- [x] **21.7** Frontend-Seite — `/instagram-check` mit mehrstufigem Flow: Bild-Upload → Claim-Review (editierbar, markierbar) → Bewertungs-Ergebnis mit Ampel, Sparschätzung, Belegen und Quellen-Chips
+- [x] **21.8** API-Client & Typen — `fetchInstagramCheck`, `analyzeInstagramCheck`, `saveInstagramCheck`, `evaluateInstagramCheck`, `fetchTaxPrepItems` in `frontend/src/lib/api.ts`; Typdefinitionen in `frontend/src/types/instagramCheck.ts`
+- [x] **21.9** Tests — `backend/tests/test_instagram_check_api.py` mit API-Integration-Tests (Analyze, Save, Evaluate, TaxPrep)
 
 ---
 
@@ -223,5 +237,5 @@ Phase 0 → Phase 7 → Phase 8 → Phase 9 → Phase 11 → Phase 12 ───�
                                                                     Phase 14
 ```
 
-Frontend (Phase 1–6) und Backend-Grundgerüst (Phase 7–9) können parallel entwickelt werden.  
+Frontend (Phase 1–6) und Backend-Grundgerüst (Phase 7–9) können parallel entwickelt werden.
 Phase 10 verbindet beide Stränge und setzt Phase 6 + Phase 9 voraus.

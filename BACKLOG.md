@@ -255,7 +255,7 @@ Ziel: Die KI führt ein strukturiertes Interview durch und leitet eigeninitiativ
 
 ---
 
-### 22.1 — Fragen-Katalog (`backend/ingest/interview_catalog.py`)
+### ~~22.1 — Fragen-Katalog (`backend/app/interview_catalog.py`) ✓~~
 
 Statische Datei mit allen Fragen als Python-Datenklassen. Jede Frage hat:
 - `id: str` — eindeutige ID (z.B. `"work.homeoffice"`)

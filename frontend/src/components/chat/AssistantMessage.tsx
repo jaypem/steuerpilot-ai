@@ -93,16 +93,33 @@ export default function AssistantMessage({ message }: AssistantMessageProps) {
         {/* Bubble */}
         <div className="rounded-2xl rounded-tl-sm border border-border bg-surface-raised px-4 py-3 shadow-sm">
           {isWaiting ? (
-            <span className="flex items-center gap-2 py-0.5 text-xs text-muted">
-              <span className="flex gap-1">
-                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted [animation-delay:-0.3s]" />
-                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted [animation-delay:-0.15s]" />
-                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted" />
-              </span>
-              {message.statusLabel && (
-                <span className="animate-pulse">{message.statusLabel}</span>
+            <div className="space-y-1.5 py-0.5">
+              {/* Abgeschlossene Schritte mit Dauer */}
+              {message.statusSteps && message.statusSteps.length > 0 && (
+                <div className="space-y-1">
+                  {message.statusSteps.map((step, i) => (
+                    <div key={i} className="flex items-center gap-2 text-xs text-muted">
+                      <span className="text-accent">✓</span>
+                      <span>{step.label}</span>
+                      <span className="ml-auto tabular-nums opacity-60">
+                        {(step.durationMs / 1000).toFixed(1)}s
+                      </span>
+                    </div>
+                  ))}
+                </div>
               )}
-            </span>
+              {/* Aktuell laufender Schritt */}
+              <span className="flex items-center gap-2 text-xs text-muted">
+                <span className="flex gap-1">
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted [animation-delay:-0.3s]" />
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted [animation-delay:-0.15s]" />
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted" />
+                </span>
+                {message.statusLabel && (
+                  <span className="animate-pulse">{message.statusLabel}</span>
+                )}
+              </span>
+            </div>
           ) : (
             <Markdown remarkPlugins={[remarkGfm]} components={mdComponents}>
               {displayContent}

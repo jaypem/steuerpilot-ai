@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Message, RiskBadge, Source } from "@/types/chat";
+import type { Message, RiskBadge, Source, StatusStep } from "@/types/chat";
 import { streamChat } from "@/lib/api";
 
 interface UseChatAPIOptions {
@@ -70,6 +70,22 @@ export function useChatAPI({ sessionId, taxYear, onDone }: UseChatAPIOptions = {
       let savingAmount: number | undefined;
       let completed = false;
 
+      // Per-step timing
+      const completedSteps: StatusStep[] = [];
+      let currentStatusLabel: string | null = null;
+      let currentStatusStart: number | null = null;
+
+      function finalizeCurrentStep() {
+        if (currentStatusLabel !== null && currentStatusStart !== null) {
+          completedSteps.push({
+            label: currentStatusLabel,
+            durationMs: Date.now() - currentStatusStart,
+          });
+          currentStatusLabel = null;
+          currentStatusStart = null;
+        }
+      }
+
       try {
         abortRef.current = new AbortController();
 
@@ -79,18 +95,29 @@ export function useChatAPI({ sessionId, taxYear, onDone }: UseChatAPIOptions = {
         )) {
           switch (chunk.type) {
             case "status":
+              finalizeCurrentStep();
+              currentStatusLabel = chunk.label;
+              currentStatusStart = Date.now();
               setMessages((prev) =>
                 prev.map((m) =>
-                  m.id === assistantId ? { ...m, statusLabel: chunk.label } : m,
+                  m.id === assistantId
+                    ? { ...m, statusLabel: chunk.label, statusSteps: [...completedSteps] }
+                    : m,
                 ),
               );
               break;
 
             case "text":
+              finalizeCurrentStep();
               setMessages((prev) =>
                 prev.map((m) =>
                   m.id === assistantId
-                    ? { ...m, statusLabel: undefined, content: m.content + chunk.content }
+                    ? {
+                      ...m,
+                      statusLabel: undefined,
+                      statusSteps: [...completedSteps],
+                      content: m.content + chunk.content,
+                    }
                     : m,
                 ),
               );
@@ -124,12 +151,12 @@ export function useChatAPI({ sessionId, taxYear, onDone }: UseChatAPIOptions = {
                 prev.map((m) =>
                   m.id === assistantId
                     ? {
-                        ...m,
-                        isStreaming: false,
-                        sources: sources.length > 0 ? sources : undefined,
-                        riskBadge,
-                        savingAmount,
-                      }
+                      ...m,
+                      isStreaming: false,
+                      sources: sources.length > 0 ? sources : undefined,
+                      riskBadge,
+                      savingAmount,
+                    }
                     : m,
                 ),
               );

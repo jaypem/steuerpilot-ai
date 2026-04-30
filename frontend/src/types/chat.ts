@@ -14,6 +14,11 @@ export interface RiskBadge {
   explanation: string; // Tooltip-Text
 }
 
+export interface StatusStep {
+  label: string;
+  durationMs: number;
+}
+
 export interface Message {
   id: string;
   role: "user" | "assistant";
@@ -24,4 +29,5 @@ export interface Message {
   timestamp: Date;
   isStreaming?: boolean;
   statusLabel?: string;
+  statusSteps?: StatusStep[];
 }

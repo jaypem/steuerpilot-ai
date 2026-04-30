@@ -190,7 +190,7 @@
 
 ## Phase 18: Frontend-Features
 
-- [ ] **18.1** Chat-Export — Konversation als PDF oder Markdown herunterladen (inkl. Quellenangaben)
+- [x] **18.1** Chat-Export — Konversation als Markdown oder PDF (Browser-Print) herunterladen (inkl. Quellenangaben, Risikoeinschätzung, Sparschätzung); Export-Dropdown in ChatContainer oben rechts
 - [x] **18.2** Steuerjahr-Umschalter im Frontend — Dropdown in SessionSidebar für 2023/2024/2025, verdrahtet mit `setTaxYear` aus ChatContext
 - [x] **18.3** Session umbenennen — auto-generierter Name durch Nutzer editierbar (Doppelklick in SessionSidebar, Enter/Escape/Blur)
 

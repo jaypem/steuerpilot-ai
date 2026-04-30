@@ -27,7 +27,11 @@ from llama_index.core.schema import (
     TextNode,
 )
 from llama_index.core.storage.docstore import BaseDocumentStore, SimpleDocumentStore
-from llama_index.core.vector_stores import FilterOperator, MetadataFilter, MetadataFilters
+from llama_index.core.vector_stores import (
+    FilterOperator,
+    MetadataFilter,
+    MetadataFilters,
+)
 from llama_index.retrievers.bm25 import BM25Retriever
 
 from app.reference_resolver import resolve_references
@@ -38,7 +42,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-DENSE_TOP_K = 30  # mehr Kandidaten für den Cross-Encoder → besserer Recall
+DENSE_TOP_K = 50  # mehr Kandidaten für den Cross-Encoder → besserer Recall
 BM25_TOP_K = 20
 RERANK_TOP_N = 5
 MERGE_THRESHOLD = 3  # min. Child-Treffer eines § um zum Parent zusammenzuführen
@@ -189,6 +193,7 @@ class HybridRetriever(BaseRetriever):
         if self._use_hyde:
             from app.hyde import expand_query
             from app.llm import get_llm
+
             expanded = await expand_query(query_bundle.query_str, get_llm())
             query_bundle = QueryBundle(query_str=expanded)
         return self._retrieve(query_bundle)
@@ -218,10 +223,10 @@ class HybridRetriever(BaseRetriever):
             for node, score in zip(nodes, scores):
                 node.score = float(score)
             nodes.sort(key=lambda n: n.score or 0.0, reverse=True)
-            return nodes[:self._rerank_top_n]
+            return nodes[: self._rerank_top_n]
         except Exception as exc:
             logger.warning("Re-ranking failed (%s) — using dense order.", exc)
-            return nodes[:self._rerank_top_n]
+            return nodes[: self._rerank_top_n]
 
     def _auto_merge(self, nodes: list[NodeWithScore]) -> list[NodeWithScore]:
         """

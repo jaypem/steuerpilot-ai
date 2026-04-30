@@ -238,7 +238,7 @@ Ziel: Die KI führt ein strukturiertes Interview durch und leitet eigeninitiativ
 - [x] **22.4** Interview-Engine — `get_next_question()` (Konditionallogik) + `evaluate_interview()` (parallele RAG+LLM-Calls pro Kategorie) in `backend/app/tax_interview.py`
 - [x] **22.5** API-Router — 4 Endpunkte (`GET /tax-interview`, `POST /start`, `PUT /answer`, `POST /evaluate`) in `backend/app/routers/tax_interview.py`
 - [x] **22.6** Frontend: Typen & API-Client — TypeScript-Modelle in `taxInterview.ts` + 4 API-Funktionen in `api.ts`
-- [ ] **22.7** Frontend: Interview-Seite — 3-Phasen-Flow (Start → Fragen → Report) in `frontend/src/app/tax-interview/page.tsx`
+- [x] **22.7** Frontend: Interview-Seite — 3-Phasen-Flow (Start → Fragen → Report) in `frontend/src/app/tax-interview/page.tsx`
 - [x] **22.8** Tests — Engine-Unit-Tests (Konditionallogik) + API-Integrationstests in `backend/tests/test_tax_interview.py`
 
 ### Konzept

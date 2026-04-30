@@ -62,44 +62,49 @@ export default function Header({
         <nav className="hidden items-center gap-1 lg:flex" aria-label="Hauptnavigation">
           <Link
             href="/"
-            className={`rounded-md px-2.5 py-1 text-xs transition-colors ${
-              pathname === "/"
+            className={`rounded-md px-2.5 py-1 text-xs transition-colors ${pathname === "/"
                 ? "bg-border text-foreground"
                 : "text-muted hover:bg-border hover:text-foreground"
-            }`}
+              }`}
           >
             Chat
           </Link>
           <Link
             href="/scan"
-            className={`rounded-md px-2.5 py-1 text-xs transition-colors ${
-              pathname === "/scan"
+            className={`rounded-md px-2.5 py-1 text-xs transition-colors ${pathname === "/scan"
                 ? "bg-border text-foreground"
                 : "text-muted hover:bg-border hover:text-foreground"
-            }`}
+              }`}
           >
             Ausgaben-Scan
           </Link>
           <Link
             href={DOUBLE_TAX_SAVINGS_ROUTE}
             title={DOUBLE_TAX_SAVINGS_TOOLTIP}
-            className={`rounded-md px-2.5 py-1 text-xs transition-colors ${
-              isDoubleTaxSavingsRoute
+            className={`rounded-md px-2.5 py-1 text-xs transition-colors ${isDoubleTaxSavingsRoute
                 ? "bg-border text-foreground"
                 : "text-muted hover:bg-border hover:text-foreground"
-            }`}
+              }`}
           >
             {DOUBLE_TAX_SAVINGS_LABEL}
           </Link>
           <Link
             href="/instagram-check"
-            className={`rounded-md px-2.5 py-1 text-xs transition-colors ${
-              pathname === "/instagram-check"
+            className={`rounded-md px-2.5 py-1 text-xs transition-colors ${pathname === "/instagram-check"
                 ? "bg-border text-foreground"
                 : "text-muted hover:bg-border hover:text-foreground"
-            }`}
+              }`}
           >
             Instagram-Check
+          </Link>
+          <Link
+            href="/tax-interview"
+            className={`rounded-md px-2.5 py-1 text-xs transition-colors ${pathname === "/tax-interview"
+                ? "bg-border text-foreground"
+                : "text-muted hover:bg-border hover:text-foreground"
+              }`}
+          >
+            Steuer-Interview
           </Link>
         </nav>
       </div>

@@ -54,7 +54,7 @@ jobs:
                 '| Quelle | Wo nachschlagen |',
                 '|--------|----------------|',
                 '| EStG / AO / UStG / EStDV / SolzG / GewStG / KStG / ErbStG / ArbNErfG | gesetze-im-internet.de |',
-                '| LStR | bundesfinanzministerium.de → Steuern → Lohnsteuer-Richtlinien |',
+                '| LStR | lsth.bundesfinanzministerium.de → Jahresauswahl-Dropdown → `lsth/{YYYY}/home.html` |',
                 '| BMF-Schreiben | `backend/ingest/scrapers/bmf_catalog.py` — URLs einzeln prüfen |',
                 '| BFH-Urteile | `backend/ingest/scrapers/bfh_catalog.py` — ECLI-Links prüfen |',
                 '',

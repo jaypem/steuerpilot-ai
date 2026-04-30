@@ -4,6 +4,7 @@ Registry of all external sources that require annual URL checks.
 Each entry carries a name, the current URL, the year it was last verified,
 and a note explaining where to find the new version when the URL changes.
 """
+
 from dataclasses import dataclass
 
 
@@ -33,13 +34,13 @@ _SOURCES: list[ExternalSource] = [
     ),
     ExternalSource(
         key="LStR",
-        name="Lohnsteuer-Richtlinien",
-        url="https://www.bundesfinanzministerium.de/Content/DE/Downloads/Steuern/Steuerarten/Lohnsteuer/Lohnsteuer-Richtlinien/2023-10-06-lohnsteuer-richtlinien-2023.pdf?__blob=publicationFile&v=3",
-        verified_year=2023,
+        name="Lohnsteuer-Richtlinien (HTML)",
+        url="https://lsth.bundesfinanzministerium.de/lsth/2023/home.html",
+        verified_year=2025,
         update_hint=(
-            "Bundesfinanzministerium → Steuern → Steuerarten → Lohnsteuer → "
-            "Lohnsteuer-Richtlinien. Suche nach 'LStR <Jahr>'. "
-            "URL-Muster: lohnsteuer-richtlinien-<YYYY>.pdf"
+            "lsth.bundesfinanzministerium.de → Jahresauswahl-Dropdown → neues Jahr wählen. "
+            "URL-Muster: lsth/{YYYY}/home.html — Jahreszahl in registry.py und im "
+            "Aufruf von download_and_parse_lstr() anpassen."
         ),
     ),
     ExternalSource(
@@ -66,4 +67,6 @@ def get_source(key: str) -> ExternalSource:
     for src in _SOURCES:
         if src.key == key:
             return src
-    raise KeyError(f"Unknown source key: {key!r}. Available: {[s.key for s in _SOURCES]}")
+    raise KeyError(
+        f"Unknown source key: {key!r}. Available: {[s.key for s in _SOURCES]}"
+    )

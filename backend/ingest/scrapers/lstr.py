@@ -1,29 +1,34 @@
 """
-LStR (Lohnsteuer-Richtlinien) scraper.
+LStR (Lohnsteuer-Richtlinien) scraper — HTML edition.
 
 Technischer Ablauf:
-  1. PDF herunterladen (httpx)
-  2. pdfplumber öffnet das PDF und iteriert über jede Seite
-  3. page.extract_text() rekonstruiert den Fließtext aus PDF-Text-Objekten
-     (jedes Zeichen hat x/y-Koordinaten — pdfplumber sortiert nach Position)
-  4. Volltext aller Seiten zu einem String zusammenführen
-  5. Auf Randnummern-Muster splitten: "R \\d+(\\.\\d+)*" steht am Zeilenanfang
-     und markiert jeden LStR-Abschnitt (z.B. "R 19.3", "R 40")
-  6. Jeden Abschnitt als eigenes LlamaIndex Document speichern
+  1. Home-Seite abrufen (lsth.bundesfinanzministerium.de/lsth/{year}/home.html)
+  2. Alle Paragraf-*/inhalt.html Links extrahieren
+  3. Jede Paragraf-Seite nebenläufig abrufen (Semaphore: 10 gleichzeitige Anfragen)
+  4. Auf jeder Seite alle Richtlinien-Abschnitte (class="toc-container pressrelease")
+     mit einem richtext-margin-number "R <nr>" extrahieren:
+       - margin-number → paragraph-Metadatum (z.B. "R 19.1")
+       - toc-subheadline → Abschnittstitel
+       - toc-inner-container Text → Fließtext der Richtlinie
+  5. Jeden R-Abschnitt als eigenes LlamaIndex Document speichern
 
 Metadaten pro Document:
   law       — "LStR"
-  section   — Randnummer, z.B. "R 19.3"
+  paragraph — Randnummer, z.B. "R 19.1"
+  section   — Paragraf aus der URL, z.B. "§ 19"
+  title     — Abschnittsüberschrift, z.B. "Arbeitgeber"
   year      — int, z.B. 2023
-  source    — "bundesfinanzministerium.de"
-  url       — direkte PDF-URL
+  source    — "lsth.bundesfinanzministerium.de"
+  url       — direkte URL der Paragraf-Seite
 """
-import io
+
+import asyncio
 import logging
 import re
 from pathlib import Path
 
 import httpx
+from bs4 import BeautifulSoup
 from llama_index.core import Document
 from llama_index.core.schema import BaseNode
 
@@ -32,106 +37,177 @@ from ingest.scrapers.registry import get_source
 
 logger = logging.getLogger(__name__)
 
-# Randnummer am Zeilenanfang: "R 19.3" oder "R 40"
-_RANDNR_RE = re.compile(r"(?m)^(R\s+\d+(?:\.\d+)*)\s*\n")
+_BASE_URL = "https://lsth.bundesfinanzministerium.de/"
 
-# Minimum character count — discard near-empty chunks (page headers etc.)
-_MIN_CHUNK_CHARS = 80
+# Extracts Paragraf-N from a URL path segment, e.g. "Paragraf-19" → "§ 19"
+_PARAGRAF_RE = re.compile(r"Paragraf-(\d+[a-zA-Z]*)", re.IGNORECASE)
+
+# Only scrape Paragraf-* leaf pages (skip meta/index/appendix pages)
+_PARAGRAF_URL_RE = re.compile(r"lsth/\d+/.+/Paragraf-[^/]+/inhalt\.html$")
+
+# Minimum character count for a section body
+_MIN_CHARS = 50
+
+# Concurrent HTTP requests
+_SEMAPHORE_LIMIT = 10
 
 
-def _split_by_randnummer(full_text: str) -> list[tuple[str, str]]:
+def _paragraph_from_url(url: str) -> str:
+    """Extract '§ 19' from '…/Paragraf-19/inhalt.html'."""
+    m = _PARAGRAF_RE.search(url)
+    if not m:
+        return ""
+    raw = m.group(1)
+    # Normalise: "19a" stays "19a", digits only adds space
+    return f"§ {raw}"
+
+
+def _extract_text(element) -> str:
+    """Return clean text from a BeautifulSoup element."""
+    return " ".join(element.get_text(" ", strip=True).split())
+
+
+def _parse_page(html: str, url: str, year: int) -> list[BaseNode]:
     """
-    Split *full_text* on Randnummern headers.
-    Returns list of (randnr, body_text) tuples.
+    Parse one Paragraf HTML page and return one Document per R-Richtlinie.
     """
-    parts: list[tuple[str, str]] = []
-    matches = list(_RANDNR_RE.finditer(full_text))
-
-    for i, m in enumerate(matches):
-        randnr = m.group(1).strip()
-        start = m.end()
-        end = matches[i + 1].start() if i + 1 < len(matches) else len(full_text)
-        body = full_text[start:end].strip()
-        if len(body) >= _MIN_CHUNK_CHARS:
-            parts.append((randnr, body))
-
-    return parts
-
-
-def parse_lstr_pdf(pdf_bytes: bytes, year: int, url: str) -> list[BaseNode]:
-    """
-    Parse *pdf_bytes* (raw PDF content) into LlamaIndex Documents.
-    One Document per Randnummer section.
-    """
-    import pdfplumber  # lazy import — optional dependency
-
+    soup = BeautifulSoup(html, "html.parser")
+    section = _paragraph_from_url(url)
     documents: list[BaseNode] = []
-    pages: list[str] = []
 
-    with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
-        logger.info("LStR PDF: %d Seiten", len(pdf.pages))
-        for page in pdf.pages:
-            text = page.extract_text()
-            if text:
-                pages.append(text)
+    # Each R-Richtlinie section lives in a toc-container that has
+    # a richtext-margin-number starting with "R".
+    for container in soup.find_all("div", class_="toc-container"):
+        margin_el = container.find("span", class_="richtext-margin-number")
+        if margin_el is None:
+            continue
 
-    full_text = "\n".join(pages)
-    logger.debug("LStR Volltext: %d Zeichen", len(full_text))
+        # Replace non-breaking spaces and normalise
+        raw_number = margin_el.get_text(" ", strip=True).replace("\xa0", " ")
+        if not raw_number.startswith("R "):
+            continue  # skip H (Hinweise), LStDV, etc.
 
-    sections = _split_by_randnummer(full_text)
-    logger.info("LStR: %d Abschnitte nach Randnummer-Split", len(sections))
+        # Title: the toc-subheadline heading
+        inner = container.find("div", class_="toc-inner-container")
+        if inner is None:
+            continue
 
-    for randnr, body in sections:
-        doc_text = f"{randnr} LStR {year}\n\n{body}"
+        title_el = inner.find(class_="toc-subheadline")
+        title = _extract_text(title_el) if title_el else ""
+
+        # Body: collapsed content div (still present in static HTML)
+        body_el = inner.find("div", class_="toc")
+        if body_el is None:
+            # Fall back to all inner text minus the headline
+            if title_el:
+                title_el.decompose()
+            body = _extract_text(inner)
+        else:
+            body = _extract_text(body_el)
+
+        if len(body) < _MIN_CHARS:
+            continue
+
+        doc_text = f"{raw_number} LStR {year}"
+        if title:
+            doc_text += f" – {title}"
+        doc_text += f"\n\n{body}"
+
         documents.append(
             Document(
                 text=doc_text,
                 metadata={
                     "law": "LStR",
-                    "paragraph": randnr,
-                    "section": "",
-                    "title": "",
+                    "paragraph": raw_number,
+                    "section": section,
+                    "title": title,
                     "year": year,
-                    "source": "bundesfinanzministerium.de",
+                    "source": "lsth.bundesfinanzministerium.de",
                     "url": url,
                 },
             )
         )
 
-    if not documents:
-        logger.warning(
-            "LStR: Keine Abschnitte extrahiert — PDF-Struktur möglicherweise geändert. "
-            "Randnummer-Regex prüfen: %s",
-            _RANDNR_RE.pattern,
-        )
-
     return documents
+
+
+async def _fetch_page(
+    client: httpx.AsyncClient,
+    sem: asyncio.Semaphore,
+    url: str,
+    year: int,
+) -> list[BaseNode]:
+    async with sem:
+        try:
+            resp = await client.get(url, timeout=30)
+            resp.raise_for_status()
+            return _parse_page(resp.text, url, year)
+        except Exception as exc:
+            logger.warning("LStR: Fehler beim Abrufen von %s: %s", url, exc)
+            return []
+
+
+async def _collect_paragraf_urls(client: httpx.AsyncClient, year: int) -> list[str]:
+    """Fetch home.html and return all absolute Paragraf inhalt.html URLs."""
+    home_url = f"{_BASE_URL}lsth/{year}/home.html"
+    resp = await client.get(home_url, timeout=30)
+    resp.raise_for_status()
+
+    soup = BeautifulSoup(resp.text, "html.parser")
+    urls: list[str] = []
+    seen: set[str] = set()
+
+    for a in soup.find_all("a", href=True):
+        href: str = a["href"]
+        # href may be relative (e.g. "lsth/2023/…") or absolute
+        if href.startswith("http"):
+            abs_url = href
+        else:
+            abs_url = _BASE_URL + href.lstrip("/")
+
+        # Strip fragment
+        abs_url = abs_url.split("#")[0]
+
+        if _PARAGRAF_URL_RE.search(abs_url) and abs_url not in seen:
+            seen.add(abs_url)
+            urls.append(abs_url)
+
+    logger.info("LStR: %d Paragraf-Seiten gefunden (Jahr %d)", len(urls), year)
+    return urls
 
 
 async def download_and_parse_lstr(dest_dir: Path, year: int) -> ParsedLaw:
     """
-    Download the LStR PDF for *year* and return parsed Documents.
-    The PDF is cached at *dest_dir*/LStR_<year>.pdf.
+    Crawl the LStH website for *year* and return parsed Documents.
+    *dest_dir* is accepted for API compatibility but not used (no caching).
     """
-    source = get_source("LStR")
-    url = source.url
-
     dest_dir.mkdir(parents=True, exist_ok=True)
-    cache_path = dest_dir / f"LStR_{year}.pdf"
 
-    if cache_path.exists():
-        logger.info("LStR: Verwende gecachtes PDF: %s", cache_path)
-        pdf_bytes = cache_path.read_bytes()
-    else:
-        logger.info("LStR: Herunterladen von %s", url)
-        async with httpx.AsyncClient(timeout=120, follow_redirects=True) as client:
-            response = await client.get(url)
-            response.raise_for_status()
-        pdf_bytes = response.content
-        cache_path.write_bytes(pdf_bytes)
-        logger.info("LStR: PDF gespeichert unter %s (%d bytes)", cache_path, len(pdf_bytes))
+    sem = asyncio.Semaphore(_SEMAPHORE_LIMIT)
+    documents: list[BaseNode] = []
 
-    documents = parse_lstr_pdf(pdf_bytes, year, url)
-    # LStR Randnummern are already leaf-level chunks — no further splitting needed.
-    # Use parent_nodes slot so store.py embeds them directly into Chroma.
+    async with httpx.AsyncClient(
+        base_url=_BASE_URL,
+        follow_redirects=True,
+        headers={"Accept-Language": "de-DE,de;q=0.9"},
+    ) as client:
+        paragraf_urls = await _collect_paragraf_urls(client, year)
+
+        tasks = [_fetch_page(client, sem, url, year) for url in paragraf_urls]
+        results = await asyncio.gather(*tasks)
+
+    for page_docs in results:
+        documents.extend(page_docs)
+
+    logger.info("LStR: %d R-Richtlinien-Abschnitte extrahiert", len(documents))
+
+    if not documents:
+        logger.warning(
+            "LStR: Keine Abschnitte extrahiert — HTML-Struktur möglicherweise geändert. "
+            "URL prüfen: %slsth/%d/home.html",
+            _BASE_URL,
+            year,
+        )
+
+    # LStR sections are already leaf-level chunks
     return ParsedLaw(parent_nodes=documents, child_nodes=[])

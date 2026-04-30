@@ -4,15 +4,25 @@ Unit tests for app/retriever.py.
 Heavy dependencies (HuggingFace embeddings, Chroma, CrossEncoder, BM25) are
 mocked so the test suite runs fast and offline.
 """
+
 from unittest.mock import MagicMock, patch
 
 import pytest
-from llama_index.core.schema import NodeRelationship, NodeWithScore, QueryBundle, RelatedNodeInfo, TextNode
+from llama_index.core.schema import (
+    NodeRelationship,
+    NodeWithScore,
+    QueryBundle,
+    RelatedNodeInfo,
+    TextNode,
+)
 
-from app.retriever import MERGE_THRESHOLD, RERANK_TOP_N, HybridRetriever
+from app.retriever import MERGE_THRESHOLD, HybridRetriever
+
+DEFAULT_RERANK_TOP_N = 5  # matches config default
 
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
+
 
 def _scored_node(node_id: str, text: str = "text", score: float = 1.0) -> NodeWithScore:
     return NodeWithScore(
@@ -58,7 +68,10 @@ def _make_retriever(
     with (
         patch("app.retriever.BM25Retriever") as mock_bm25_cls,
         patch("app.retriever._get_reranker", return_value=mock_cross_encoder),
-        patch("app.retriever.resolve_references", side_effect=lambda nodes, *a, **kw: nodes),
+        patch(
+            "app.retriever.resolve_references",
+            side_effect=lambda nodes, *a, **kw: nodes,
+        ),
     ):
         mock_bm25_cls.from_defaults.return_value = mock_bm25
         retriever = HybridRetriever(
@@ -68,19 +81,24 @@ def _make_retriever(
         )
         # Inject the mock BM25 instance (already set during __init__)
         retriever._bm25 = mock_bm25
+
         # Inject a reranker wrapper that uses our mock scores
         def _mock_rerank(query, nodes):
-            scores = mock_cross_encoder.predict([(query, n.node.get_content()) for n in nodes])
+            scores = mock_cross_encoder.predict(
+                [(query, n.node.get_content()) for n in nodes]
+            )
             for node, score in zip(nodes, scores):
                 node.score = float(score)
             nodes.sort(key=lambda n: n.score or 0.0, reverse=True)
-            return nodes[:RERANK_TOP_N]
+            return nodes[:DEFAULT_RERANK_TOP_N]
+
         retriever._rerank = _mock_rerank
 
     return retriever
 
 
 # ─── Deduplication ────────────────────────────────────────────────────────────
+
 
 def test_deduplication_removes_duplicates():
     """A node that appears in both dense and BM25 results should appear once."""
@@ -92,7 +110,10 @@ def test_deduplication_removes_duplicates():
 
     with (
         patch("app.retriever._get_reranker", return_value=MagicMock()),
-        patch("app.retriever.resolve_references", side_effect=lambda nodes, *a, **kw: nodes),
+        patch(
+            "app.retriever.resolve_references",
+            side_effect=lambda nodes, *a, **kw: nodes,
+        ),
     ):
         results = retriever._retrieve(QueryBundle(query_str="test"))
 
@@ -109,7 +130,10 @@ def test_dense_score_takes_precedence_on_dedup():
 
     with (
         patch("app.retriever._get_reranker", return_value=MagicMock()),
-        patch("app.retriever.resolve_references", side_effect=lambda nodes, *a, **kw: nodes),
+        patch(
+            "app.retriever.resolve_references",
+            side_effect=lambda nodes, *a, **kw: nodes,
+        ),
     ):
         results = retriever._retrieve(QueryBundle(query_str="test"))
 
@@ -118,19 +142,23 @@ def test_dense_score_takes_precedence_on_dedup():
 
 # ─── Reranking top-N ──────────────────────────────────────────────────────────
 
+
 def test_rerank_limits_to_top_n():
-    """After reranking, at most RERANK_TOP_N nodes are returned."""
-    nodes = [_scored_node(f"n{i}") for i in range(RERANK_TOP_N + 5)]
+    """After reranking, at most rerank_top_n nodes are returned."""
+    nodes = [_scored_node(f"n{i}") for i in range(DEFAULT_RERANK_TOP_N + 5)]
     scores = list(range(len(nodes), 0, -1))
     retriever = _make_retriever(nodes, [], reranker_scores=scores)
 
     with (
         patch("app.retriever._get_reranker", return_value=MagicMock()),
-        patch("app.retriever.resolve_references", side_effect=lambda nodes, *a, **kw: nodes),
+        patch(
+            "app.retriever.resolve_references",
+            side_effect=lambda nodes, *a, **kw: nodes,
+        ),
     ):
         results = retriever._retrieve(QueryBundle(query_str="test"))
 
-    assert len(results) <= RERANK_TOP_N
+    assert len(results) <= DEFAULT_RERANK_TOP_N
 
 
 def test_rerank_sorts_by_score_descending():
@@ -144,7 +172,10 @@ def test_rerank_sorts_by_score_descending():
 
     with (
         patch("app.retriever._get_reranker", return_value=MagicMock()),
-        patch("app.retriever.resolve_references", side_effect=lambda nodes, *a, **kw: nodes),
+        patch(
+            "app.retriever.resolve_references",
+            side_effect=lambda nodes, *a, **kw: nodes,
+        ),
     ):
         results = retriever._retrieve(QueryBundle(query_str="test"))
 
@@ -152,6 +183,7 @@ def test_rerank_sorts_by_score_descending():
 
 
 # ─── BM25 disabled when no corpus ────────────────────────────────────────────
+
 
 def test_bm25_disabled_when_no_corpus():
     """If chroma returns no nodes, BM25 retriever should be None."""
@@ -166,7 +198,10 @@ def test_bm25_disabled_when_no_corpus():
     with (
         patch("app.retriever.BM25Retriever"),
         patch("app.retriever._get_reranker", return_value=MagicMock()),
-        patch("app.retriever.resolve_references", side_effect=lambda nodes, *a, **kw: nodes),
+        patch(
+            "app.retriever.resolve_references",
+            side_effect=lambda nodes, *a, **kw: nodes,
+        ),
     ):
         retriever = HybridRetriever(
             index=mock_index,
@@ -182,7 +217,10 @@ def test_empty_dense_and_bm25_returns_empty():
 
     with (
         patch("app.retriever._get_reranker", return_value=MagicMock()),
-        patch("app.retriever.resolve_references", side_effect=lambda nodes, *a, **kw: nodes),
+        patch(
+            "app.retriever.resolve_references",
+            side_effect=lambda nodes, *a, **kw: nodes,
+        ),
     ):
         results = retriever._retrieve(QueryBundle(query_str="test"))
 
@@ -190,6 +228,7 @@ def test_empty_dense_and_bm25_returns_empty():
 
 
 # ─── AutoMerge ────────────────────────────────────────────────────────────────
+
 
 def _child_node(node_id: str, parent_id: str, score: float = 1.0) -> NodeWithScore:
     """Helper: a child TextNode with a PARENT relationship."""
@@ -208,8 +247,8 @@ def _make_retriever_with_docstore(parent_node: TextNode) -> HybridRetriever:
     """Build a minimal HybridRetriever with a mocked docstore."""
     retriever = _make_retriever([], [])
     mock_docstore = MagicMock()
-    mock_docstore.get_document.side_effect = (
-        lambda nid: parent_node if nid == parent_node.node_id else None
+    mock_docstore.get_document.side_effect = lambda nid: (
+        parent_node if nid == parent_node.node_id else None
     )
     retriever._docstore = mock_docstore
     return retriever
@@ -279,8 +318,8 @@ def test_auto_merge_non_children_pass_through():
     result = retriever._auto_merge([plain] + children)
     ids = {n.node.node_id for n in result}
 
-    assert "lstr_r1" in ids   # plain node preserved
-    assert "p1" in ids         # children merged to parent
+    assert "lstr_r1" in ids  # plain node preserved
+    assert "p1" in ids  # children merged to parent
     assert not any(f"c{i}" in ids for i in range(MERGE_THRESHOLD))
 
 
@@ -290,9 +329,7 @@ def test_auto_merge_mixed_parents():
     p2 = TextNode(text="parent2", id_="p2", metadata={"year": 2025})
 
     mock_docstore = MagicMock()
-    mock_docstore.get_document.side_effect = lambda nid: {
-        "p1": p1, "p2": p2
-    }.get(nid)
+    mock_docstore.get_document.side_effect = lambda nid: {"p1": p1, "p2": p2}.get(nid)
 
     retriever = _make_retriever([], [])
     retriever._docstore = mock_docstore
@@ -304,6 +341,6 @@ def test_auto_merge_mixed_parents():
     result = retriever._auto_merge(p1_children + p2_children)
     ids = {n.node.node_id for n in result}
 
-    assert "p1" in ids          # merged
-    assert "c2_0" in ids        # kept (below threshold)
-    assert "p2" not in ids      # not merged
+    assert "p1" in ids  # merged
+    assert "c2_0" in ids  # kept (below threshold)
+    assert "p2" not in ids  # not merged

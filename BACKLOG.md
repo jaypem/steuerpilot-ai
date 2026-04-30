@@ -235,8 +235,8 @@ Ziel: Die KI führt ein strukturiertes Interview durch und leitet eigeninitiativ
 - [x] **22.1** Fragen-Katalog — 59 Fragen in 8 Kategorien mit Konditionallogik und RAG-Hints; `backend/app/interview_catalog.py`
 - [x] **22.2** Datenbankschema — 3 neue Tabellen (`tax_interviews`, `tax_interview_answers`, `tax_interview_findings`) in `backend/app/database.py`
 - [x] **22.3** Pydantic-Modelle — `TaxInterview`, `InterviewQuestion`, `TaxInterviewFinding`, Enums in `backend/app/models/tax_interview.py`
-- [ ] **22.4** Interview-Engine — `get_next_question()` (Konditionallogik) + `evaluate_interview()` (parallele RAG+LLM-Calls pro Kategorie) in `backend/app/tax_interview.py`
-- [ ] **22.5** API-Router — 4 Endpunkte (`GET /tax-interview`, `POST /start`, `PUT /answer`, `POST /evaluate`) in `backend/app/routers/tax_interview.py`
+- [x] **22.4** Interview-Engine — `get_next_question()` (Konditionallogik) + `evaluate_interview()` (parallele RAG+LLM-Calls pro Kategorie) in `backend/app/tax_interview.py`
+- [x] **22.5** API-Router — 4 Endpunkte (`GET /tax-interview`, `POST /start`, `PUT /answer`, `POST /evaluate`) in `backend/app/routers/tax_interview.py`
 - [ ] **22.6** Frontend: Typen & API-Client — TypeScript-Modelle in `taxInterview.ts` + 4 API-Funktionen in `api.ts`
 - [ ] **22.7** Frontend: Interview-Seite — 3-Phasen-Flow (Start → Fragen → Report) in `frontend/src/app/tax-interview/page.tsx`
 - [ ] **22.8** Tests — Engine-Unit-Tests (Konditionallogik) + API-Integrationstests in `backend/tests/test_tax_interview.py`

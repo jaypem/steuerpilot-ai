@@ -28,6 +28,12 @@ class AnswerPayload(BaseModel):
     answer: bool | int | str
 
 
+class StartInterviewRequest(BaseModel):
+    """Request body for the start/reset endpoint."""
+
+    tax_year: int
+
+
 class TaxInterviewFinding(BaseModel):
     category: str
     title: str
@@ -43,6 +49,6 @@ class TaxInterview(BaseModel):
     status: TaxInterviewStatus
     tax_year: int
     answers: dict[str, bool | int | str]
-    next_question: InterviewQuestion | None  # None = Interview abgeschlossen
+    next_question: InterviewQuestion | None  # None when all applicable questions answered
     findings: list[TaxInterviewFinding] | None = None
     updated_at: datetime

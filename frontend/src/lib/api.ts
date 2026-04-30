@@ -12,6 +12,11 @@ import type {
   IdeaTransferCaseKind,
   IdeaTransferEvaluationResult,
 } from "@/types/ideaTransfer";
+import type {
+  InterviewQuestion,
+  TaxInterview,
+  TaxInterviewFinding,
+} from "@/types/taxInterview";
 import type { Session } from "@/types/session";
 import type { ScanResult } from "@/types/scan";
 import { DOUBLE_TAX_SAVINGS_LABEL } from "./doubleTaxSavings";
@@ -31,19 +36,19 @@ interface ChatPayload {
 export type StreamChunk =
   | { type: "text"; content: string }
   | {
-      type: "source";
-      law: string;
-      paragraph: string;
-      section: string;
-      text: string;
-      url?: string | null;
-    }
+    type: "source";
+    law: string;
+    paragraph: string;
+    section: string;
+    text: string;
+    url?: string | null;
+  }
   | {
-      type: "risk_badge";
-      level: "low" | "medium" | "high";
-      label: string;
-      explanation: string;
-    }
+    type: "risk_badge";
+    level: "low" | "medium" | "high";
+    label: string;
+    explanation: string;
+  }
   | { type: "saving"; amount: number }
   | { type: "status"; label: string }
   | { type: "done" }
@@ -181,6 +186,34 @@ interface APITaxPrepItem {
   updated_at: string;
 }
 
+interface APIInterviewQuestion {
+  id: string;
+  category: string;
+  text: string;
+  answer_type: InterviewQuestion["answerType"];
+  options: string[] | null;
+}
+
+interface APITaxInterviewFinding {
+  category: string;
+  title: string;
+  traffic_light: TaxInterviewFinding["trafficLight"];
+  explanation: string;
+  estimated_saving_eur: number | null;
+  required_evidence: string[];
+  sources: Source[];
+}
+
+interface APITaxInterview {
+  session_id: string;
+  status: TaxInterview["status"];
+  tax_year: number;
+  answers: Record<string, boolean | number | string>;
+  next_question: APIInterviewQuestion | null;
+  findings: APITaxInterviewFinding[] | null;
+  updated_at: string;
+}
+
 // ─── Mappers ──────────────────────────────────────────────────────────────────
 
 function mapSession(s: APISession): Session {
@@ -278,17 +311,17 @@ function mapInstagramCheck(apiCheck: APIInstagramPostCheck): InstagramPostCheck 
     })),
     evaluatedTips: apiCheck.evaluated_tips
       ? apiCheck.evaluated_tips.map((tip) => ({
-          claimId: tip.claim_id,
-          title: tip.title,
-          normalizedTip: tip.normalized_tip,
-          category: tip.category,
-          returnBucket: tip.return_bucket,
-          trafficLight: tip.traffic_light,
-          explanation: tip.explanation,
-          estimatedSavingEur: tip.estimated_saving_eur,
-          requiredEvidence: tip.required_evidence,
-          sources: tip.sources,
-        }))
+        claimId: tip.claim_id,
+        title: tip.title,
+        normalizedTip: tip.normalized_tip,
+        category: tip.category,
+        returnBucket: tip.return_bucket,
+        trafficLight: tip.traffic_light,
+        explanation: tip.explanation,
+        estimatedSavingEur: tip.estimated_saving_eur,
+        requiredEvidence: tip.required_evidence,
+        sources: tip.sources,
+      }))
       : null,
     updatedAt: new Date(apiCheck.updated_at),
   };
@@ -573,4 +606,87 @@ export async function scanExpenses(
     totalSavingEstimate: data.total_saving_estimate,
     missingPositions: data.missing_positions ?? [],
   };
+}
+
+// ─── Tax interview ────────────────────────────────────────────────────────────
+
+function mapInterviewQuestion(q: APIInterviewQuestion): InterviewQuestion {
+  return {
+    id: q.id,
+    category: q.category,
+    text: q.text,
+    answerType: q.answer_type,
+    options: q.options,
+  };
+}
+
+function mapTaxInterview(api: APITaxInterview): TaxInterview {
+  return {
+    sessionId: api.session_id,
+    status: api.status,
+    taxYear: api.tax_year,
+    answers: api.answers,
+    nextQuestion: api.next_question ? mapInterviewQuestion(api.next_question) : null,
+    findings: api.findings
+      ? api.findings.map((f) => ({
+        category: f.category,
+        title: f.title,
+        trafficLight: f.traffic_light,
+        explanation: f.explanation,
+        estimatedSavingEur: f.estimated_saving_eur,
+        requiredEvidence: f.required_evidence,
+        sources: f.sources,
+      }))
+      : null,
+    updatedAt: new Date(api.updated_at),
+  };
+}
+
+export async function fetchTaxInterview(
+  sessionId: string,
+): Promise<TaxInterview | null> {
+  const res = await fetch(`${API_URL}/api/tax-interview/${sessionId}`);
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return mapTaxInterview(await res.json());
+}
+
+export async function startTaxInterview(
+  sessionId: string,
+  taxYear: number,
+): Promise<TaxInterview> {
+  const res = await fetch(`${API_URL}/api/tax-interview/${sessionId}/start`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ tax_year: taxYear }),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return mapTaxInterview(await res.json());
+}
+
+export async function answerTaxInterviewQuestion(
+  sessionId: string,
+  questionId: string,
+  answer: boolean | number | string,
+): Promise<TaxInterview> {
+  const res = await fetch(`${API_URL}/api/tax-interview/${sessionId}/answer`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ question_id: questionId, answer }),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return mapTaxInterview(await res.json());
+}
+
+export async function evaluateTaxInterview(
+  sessionId: string,
+): Promise<TaxInterview> {
+  const res = await fetch(`${API_URL}/api/tax-interview/${sessionId}/evaluate`, {
+    method: "POST",
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => res.statusText);
+    throw new Error(`Interview-Auswertung fehlgeschlagen (${res.status}): ${text}`);
+  }
+  return mapTaxInterview(await res.json());
 }

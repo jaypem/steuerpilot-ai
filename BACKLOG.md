@@ -183,7 +183,7 @@
 
 ## Phase 17: Infrastruktur und Betrieb
 
-- [ ] **17.1** GitHub Actions Cron-Job `check-sources.yml` — wöchentlich `make check-sources`, bei Fehlern automatisch GitHub Issue anlegen
+- [x] **17.1** GitHub Actions Cron-Job `check-sources.yml` — wöchentlich (montags) `steuerpilot check-sources`, bei Fehlern automatisch GitHub Issue mit Quellenübersicht anlegen
 - [x] **17.2** `NEXT_PUBLIC_USE_MOCK=false` setzen, Frontend gegen echtes Backend testen (End-to-End-Smoke-Test)
 
 ---

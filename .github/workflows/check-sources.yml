@@ -1,11 +1,12 @@
 name: Check External Sources
 
-# Runs every year on November 1st — new LStR editions are typically published
-# in autumn for the following tax year. Alerts via GitHub issue if a URL breaks.
+# Runs every Monday at 08:07 UTC — catches broken URLs early in the week.
+# Also triggered manually for ad-hoc checks.
 on:
   schedule:
-    - cron: "0 9 1 11 *"   # 09:00 UTC on November 1st
-  workflow_dispatch:        # manual trigger for ad-hoc checks
+    - cron: "7 8 * * 1" # every Monday at 08:07 UTC
+  workflow_dispatch:
+    # manual trigger for ad-hoc checks
 
 jobs:
   check-sources:
@@ -42,17 +43,22 @@ jobs:
               repo: context.repo.repo,
               title: `[check-sources] Externe Quelle nicht erreichbar (${today})`,
               body: [
-                '## Jährlicher URL-Check fehlgeschlagen',
+                '## Wöchentlicher URL-Check fehlgeschlagen',
                 '',
                 `Datum: ${today}`,
+                'Workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}',
                 '',
-                'Mindestens eine externe Quelle ist nicht mehr erreichbar.',
-                'Bitte URL in `backend/ingest/scrapers/registry.py` aktualisieren:',
+                'Mindestens eine externe Rechtsquelle ist nicht mehr erreichbar.',
+                'Bitte URL in `backend/ingest/scrapers/registry.py` prüfen und aktualisieren.',
                 '',
-                '- **LStR**: Bundesfinanzministerium → Steuern → Lohnsteuer-Richtlinien',
-                '  URL-Muster: `lohnsteuer-richtlinien-<YYYY>.pdf`',
+                '| Quelle | Wo nachschlagen |',
+                '|--------|----------------|',
+                '| EStG / AO / UStG / EStDV / SolzG / GewStG / KStG / ErbStG / ArbNErfG | gesetze-im-internet.de |',
+                '| LStR | bundesfinanzministerium.de → Steuern → Lohnsteuer-Richtlinien |',
+                '| BMF-Schreiben | `backend/ingest/scrapers/bmf_catalog.py` — URLs einzeln prüfen |',
+                '| BFH-Urteile | `backend/ingest/scrapers/bfh_catalog.py` — ECLI-Links prüfen |',
                 '',
-                'Danach `steuerpilot ingest-lstr --year <YYYY>` ausführen.',
+                'Nach dem Fix: `make local.ingest YEAR=<YYYY>` ausführen.',
               ].join('\n'),
               labels: ['maintenance', 'data-pipeline'],
             });

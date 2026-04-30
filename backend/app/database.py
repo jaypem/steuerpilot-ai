@@ -70,6 +70,43 @@ CREATE TABLE IF NOT EXISTS tax_prep_items (
 )
 """
 
+_CREATE_TAX_INTERVIEWS = """
+CREATE TABLE IF NOT EXISTS tax_interviews (
+    session_id TEXT PRIMARY KEY REFERENCES sessions(id) ON DELETE CASCADE,
+    status     TEXT NOT NULL DEFAULT 'in_progress'
+               CHECK(status IN ('in_progress', 'completed', 'evaluated')),
+    tax_year   INTEGER NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+)
+"""
+
+_CREATE_TAX_INTERVIEW_ANSWERS = """
+CREATE TABLE IF NOT EXISTS tax_interview_answers (
+    id          TEXT PRIMARY KEY,
+    session_id  TEXT NOT NULL REFERENCES tax_interviews(session_id) ON DELETE CASCADE,
+    question_id TEXT NOT NULL,
+    answer      TEXT NOT NULL,  -- JSON-encoded value (bool/str/int)
+    created_at  TEXT NOT NULL,
+    UNIQUE(session_id, question_id)
+)
+"""
+
+_CREATE_TAX_INTERVIEW_FINDINGS = """
+CREATE TABLE IF NOT EXISTS tax_interview_findings (
+    id                   TEXT PRIMARY KEY,
+    session_id           TEXT NOT NULL REFERENCES tax_interviews(session_id) ON DELETE CASCADE,
+    category             TEXT NOT NULL,
+    title                TEXT NOT NULL,
+    traffic_light        TEXT NOT NULL CHECK(traffic_light IN ('green', 'yellow', 'red')),
+    explanation          TEXT NOT NULL,
+    estimated_saving_eur INTEGER,
+    required_evidence    TEXT NOT NULL,  -- JSON array of strings
+    sources              TEXT NOT NULL,  -- JSON array of source objects
+    created_at           TEXT NOT NULL
+)
+"""
+
 
 async def init_db(db: aiosqlite.Connection) -> None:
     """Create tables and enable foreign-key enforcement."""
@@ -79,4 +116,7 @@ async def init_db(db: aiosqlite.Connection) -> None:
     await db.execute(_CREATE_IDEA_TRANSFER_CASES)
     await db.execute(_CREATE_INSTAGRAM_POST_CHECKS)
     await db.execute(_CREATE_TAX_PREP_ITEMS)
+    await db.execute(_CREATE_TAX_INTERVIEWS)
+    await db.execute(_CREATE_TAX_INTERVIEW_ANSWERS)
+    await db.execute(_CREATE_TAX_INTERVIEW_FINDINGS)
     await db.commit()

@@ -230,9 +230,18 @@
 
 Ziel: Die KI führt ein strukturiertes Interview durch und leitet eigeninitiativ Steuersparpotenziale ab — ohne dass der Nutzer wissen muss, was er fragen soll. Der Flow ist ähnlich dem Instagram-Check (mehrstufig, RAG-gestützte Auswertung, strukturierter Report), aber mit einem geführten Frage-Antwort-Dialog als Eingabe statt Bildern.
 
-### Konzept
-
 **Ablauf:** Nutzer startet Interview → KI stellt ~20 Fragen in 8 Kategorien (adaptive Folgefragen je nach Antwort) → Nutzer beantwortet → KI wertet jede Kategorie via RAG aus → Report mit Ampel, Sparschätzung und benötigten Belegen pro Position.
+
+- [x] **22.1** Fragen-Katalog — 59 Fragen in 8 Kategorien mit Konditionallogik und RAG-Hints; `backend/app/interview_catalog.py`
+- [x] **22.2** Datenbankschema — 3 neue Tabellen (`tax_interviews`, `tax_interview_answers`, `tax_interview_findings`) in `backend/app/database.py`
+- [x] **22.3** Pydantic-Modelle — `TaxInterview`, `InterviewQuestion`, `TaxInterviewFinding`, Enums in `backend/app/models/tax_interview.py`
+- [ ] **22.4** Interview-Engine — `get_next_question()` (Konditionallogik) + `evaluate_interview()` (parallele RAG+LLM-Calls pro Kategorie) in `backend/app/tax_interview.py`
+- [ ] **22.5** API-Router — 4 Endpunkte (`GET /tax-interview`, `POST /start`, `PUT /answer`, `POST /evaluate`) in `backend/app/routers/tax_interview.py`
+- [ ] **22.6** Frontend: Typen & API-Client — TypeScript-Modelle in `taxInterview.ts` + 4 API-Funktionen in `api.ts`
+- [ ] **22.7** Frontend: Interview-Seite — 3-Phasen-Flow (Start → Fragen → Report) in `frontend/src/app/tax-interview/page.tsx`
+- [ ] **22.8** Tests — Engine-Unit-Tests (Konditionallogik) + API-Integrationstests in `backend/tests/test_tax_interview.py`
+
+### Konzept
 
 **Frage-Kategorien:**
 1. **Basisdaten & Sonderausgaben** — Beschäftigungsverhältnis, Familienstand, Kinder; Spenden & Mitgliedsbeiträge (§ 10b EStG), Kirchensteuer, Unterhaltszahlungen an Ex-Partner (§ 10 EStG)
@@ -253,50 +262,9 @@ Ziel: Die KI führt ein strukturiertes Interview durch und leitet eigeninitiativ
 - Ehrenamt/Nebenberuf: Ja → Folgefrage zu Art der Tätigkeit (Übungsleiter, Verein, freiberuflich)
 - Behinderung/Pflegegrad: Ja → Folgefrage zu Grad der Behinderung bzw. Pflegestufe
 
----
+### Spezifikationen
 
-### ~~22.1 — Fragen-Katalog (`backend/app/interview_catalog.py`) ✓~~
-
-Statische Datei mit allen Fragen als Python-Datenklassen. Jede Frage hat:
-- `id: str` — eindeutige ID (z.B. `"work.homeoffice"`)
-- `category: str` — eine der 8 Kategorien
-- `text: str` — Fragetext auf Deutsch
-- `answer_type: Literal["bool", "choice", "number", "text"]`
-- `options: list[str] | None` — bei Choice-Fragen
-- `condition: tuple[str, Any] | None` — `(question_id, expected_value)` — nur stellen wenn Vorbedingung erfüllt
-- `rag_hint: list[str]` — Gesetze die für diese Frage relevant sind (für gefilterte RAG-Auswertung)
-
-Beispiel-Einträge:
-```python
-Question(id="base.employment", category="basis", text="Wie bist du beschäftigt?",
-         answer_type="choice", options=["Angestellt", "Selbstständig", "Beides", "Beamter", "Rentner"])
-Question(id="base.donations", category="basis", text="Hast du 2025 Spenden oder Mitgliedsbeiträge geleistet?",
-         answer_type="bool", rag_hint=["EStG"])
-Question(id="base.alimony", category="basis", text="Zahlst du Unterhalt an einen Ex-Partner?",
-         answer_type="bool", rag_hint=["EStG"])
-Question(id="work.homeoffice", category="arbeit", text="Hast du 2025 von zu Hause gearbeitet?",
-         answer_type="bool", rag_hint=["EStG", "LStR", "BMF"])
-Question(id="work.homeoffice_room", category="arbeit", text="Hast du ein abgeschlossenes Arbeitszimmer?",
-         answer_type="bool", condition=("work.homeoffice", True), rag_hint=["EStG", "BMF"])
-Question(id="work.commute_km", category="arbeit", text="Wie viele Kilometer beträgt deine einfache Pendlerstrecke?",
-         answer_type="number", condition=("base.employment", "Angestellt"), rag_hint=["EStG", "LStR"])
-Question(id="home.owns_property", category="wohnen", text="Wohnst du in einer eigenen Immobilie?",
-         answer_type="bool", rag_hint=["EStG"])
-Question(id="home.energy_renovation", category="wohnen", text="Hast du 2025 energetische Sanierungsmaßnahmen durchgeführt?",
-         answer_type="bool", condition=("home.owns_property", True), rag_hint=["EStG", "BMF"])
-Question(id="side.volunteer", category="nebenberuf", text="Übst du ein Ehrenamt oder eine Nebentätigkeit aus?",
-         answer_type="bool", rag_hint=["EStG"])
-Question(id="rental.has_rental", category="vermietung", text="Vermietest du eine Immobilie oder ein Zimmer?",
-         answer_type="bool", rag_hint=["EStG"])
-Question(id="health.disability", category="gesundheit", text="Liegt bei dir oder einem Angehörigen eine anerkannte Behinderung vor?",
-         answer_type="bool", rag_hint=["EStG"])
-```
-
----
-
-### 22.2 — Datenbankschema (`backend/app/database.py`)
-
-Neue Tabellen:
+**22.2 — Datenbankschema**
 ```sql
 CREATE TABLE tax_interviews (
     session_id TEXT PRIMARY KEY,
@@ -305,7 +273,6 @@ CREATE TABLE tax_interviews (
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
-
 CREATE TABLE tax_interview_answers (
     id TEXT PRIMARY KEY,
     session_id TEXT NOT NULL REFERENCES tax_interviews(session_id),
@@ -313,7 +280,6 @@ CREATE TABLE tax_interview_answers (
     answer TEXT NOT NULL,  -- JSON-encoded (bool/str/int)
     created_at TEXT NOT NULL
 );
-
 CREATE TABLE tax_interview_findings (
     id TEXT PRIMARY KEY,
     session_id TEXT NOT NULL REFERENCES tax_interviews(session_id),
@@ -328,141 +294,42 @@ CREATE TABLE tax_interview_findings (
 );
 ```
 
----
-
-### 22.3 — Pydantic-Modelle (`backend/app/models/tax_interview.py`)
-
+**22.3 — Pydantic-Modelle**
 ```python
 class TaxInterviewStatus(str, Enum): ...  # in_progress | completed | evaluated
 class AnswerType(str, Enum): ...          # bool | choice | number | text
 class TrafficLight(str, Enum): ...        # green | yellow | red
 
 class InterviewQuestion(BaseModel):
-    id: str
-    category: str
-    text: str
-    answer_type: AnswerType
-    options: list[str] | None = None
-
-class TaxInterviewAnswer(BaseModel):
-    question_id: str
-    answer: bool | str | int  # discriminated by question type
+    id: str; category: str; text: str; answer_type: AnswerType; options: list[str] | None = None
 
 class TaxInterviewFinding(BaseModel):
-    category: str
-    title: str
-    traffic_light: TrafficLight
-    explanation: str
-    estimated_saving_eur: int | None
-    required_evidence: list[str]
-    sources: list[Source]
+    category: str; title: str; traffic_light: TrafficLight; explanation: str
+    estimated_saving_eur: int | None; required_evidence: list[str]; sources: list[Source]
 
 class TaxInterview(BaseModel):
-    session_id: str
-    status: TaxInterviewStatus
-    tax_year: int
-    answers: dict[str, bool | str | int]   # question_id → answer
-    next_question: InterviewQuestion | None  # None wenn Interview abgeschlossen
-    findings: list[TaxInterviewFinding] | None
-    updated_at: datetime
+    session_id: str; status: TaxInterviewStatus; tax_year: int
+    answers: dict[str, bool | str | int]
+    next_question: InterviewQuestion | None  # None = Interview abgeschlossen
+    findings: list[TaxInterviewFinding] | None; updated_at: datetime
 ```
 
----
+**22.4 — Interview-Engine**
+- `get_next_question(answers)` — iteriert Katalog, prüft `condition`-Felder, gibt erste unbeantwortete Frage zurück (oder `None` wenn fertig)
+- `evaluate_interview(session_id, tax_year, answers, db)` — pro Kategorie: Antworten → Kontext → RAG-Query → LLM → Finding; alle 8 Kategorien parallel via `asyncio.gather`
 
-### 22.4 — Interview-Engine (`backend/app/tax_interview.py`)
-
-Kernfunktionen:
-
-**`get_next_question(answers: dict) -> InterviewQuestion | None`**
-Iteriert den Katalog, prüft Bedingungen (`condition`-Feld) gegen bereits gegebene Antworten, gibt die erste unbeantwortete Frage zurück. Gibt `None` zurück wenn alle anwendbaren Fragen beantwortet sind → Interview abgeschlossen.
-
-**`evaluate_interview(session_id, tax_year, answers, db) -> list[TaxInterviewFinding]`**
-Wird nach Abschluss des Interviews aufgerufen. Für jede Kategorie:
-1. Relevante Antworten zu einem Kontext-String zusammenfassen
-2. RAG-Query mit Kategorie-spezifischem Filter (`rag_hint`-Gesetze) ausführen
-3. LLM-Call mit Antwort-Kontext + RAG-Chunks → strukturiertes Finding (Ampel, Erklärung, Sparschätzung, Belege)
-4. Findings in DB persistieren
-
-Evaluierung läuft kategorie-weise (5 parallele RAG+LLM-Calls via `asyncio.gather`) für kurze Gesamtlaufzeit.
-
----
-
-### 22.5 — API-Router (`backend/app/routers/tax_interview.py`)
-
+**22.5 — API**
 ```
-GET  /api/tax-interview/{session_id}          → TaxInterview (aktueller Stand + nächste Frage)
-POST /api/tax-interview/{session_id}/start    → TaxInterview anlegen / zurücksetzen
-PUT  /api/tax-interview/{session_id}/answer   → Antwort speichern, nächste Frage zurückgeben
-POST /api/tax-interview/{session_id}/evaluate → RAG-Auswertung starten → TaxInterview mit Findings
+GET  /api/tax-interview/{session_id}          → TaxInterview
+POST /api/tax-interview/{session_id}/start    → TaxInterview anlegen/zurücksetzen
+PUT  /api/tax-interview/{session_id}/answer   → Antwort speichern + nächste Frage
+POST /api/tax-interview/{session_id}/evaluate → RAG-Auswertung → TaxInterview mit Findings
 ```
 
-Die `answer`-Route gibt nach dem Speichern sofort die nächste Frage zurück (oder `next_question: null` wenn abgeschlossen) — kein separater State-Load nötig.
+**22.7 — Frontend-Seite**
+Drei Phasen: (1) Start-Screen mit Erklärung, (2) Frage-für-Frage mit Fortschrittsbalken + antworttyp-spezifischer UI (bool=Ja/Nein, choice=Kacheln, number=Input, text=Textarea), (3) Report mit Gesamt-Sparschätzung + Kategorie-Karten (Ampel, Erklärung, Belege, Quellen-Chips).
 
----
-
-### 22.6 — Frontend: Typen & API-Client
-
-**`frontend/src/types/taxInterview.ts`**
-TypeScript-Entsprechungen der Pydantic-Modelle: `TaxInterview`, `InterviewQuestion`, `TaxInterviewFinding`, `TaxInterviewStatus`.
-
-**`frontend/src/lib/api.ts`** — neue Funktionen:
-- `fetchTaxInterview(sessionId)` → `TaxInterview | null`
-- `startTaxInterview(sessionId, taxYear)` → `TaxInterview`
-- `submitTaxInterviewAnswer(sessionId, questionId, answer)` → `TaxInterview`
-- `evaluateTaxInterview(sessionId, taxYear)` → `TaxInterview`
-
----
-
-### 22.7 — Frontend: Interview-Seite (`frontend/src/app/tax-interview/page.tsx`)
-
-**Drei Phasen in einer Seite:**
-
-**Phase 1 — Start**
-Kurze Erklärung ("Ich stelle dir ~15 Fragen zu deiner Steuersituation und suche dann eigenständig nach Sparpotenzial."), Start-Button, Hinweis auf Datensensitivität.
-
-**Phase 2 — Interview (Frage für Frage)**
-- Fortschrittsbalken (Frage X von ~Y, geschätzt)
-- Frage-Text prominent
-- Antwort-UI je nach `answer_type`:
-  - `bool` → Ja/Nein-Buttons
-  - `choice` → Auswahl-Kacheln (wie beim Ideen-Transfer-Flow)
-  - `number` → Zahlen-Input mit Einheit
-  - `text` → Textarea
-- "Weiter"-Button → ruft `submitTaxInterviewAnswer` auf, rendert nächste Frage
-- "Überspringen"-Option für optionale Fragen
-
-**Phase 3 — Report**
-Nach `evaluate` (mit Lade-Indikator + Status-Meldungen):
-- Gesamt-Sparschätzung prominent (Summe aller `estimated_saving_eur`)
-- Pro Kategorie eine Karte: Ampel + Titel + Erklärung + Belege + Quellen-Chips
-- Sortiert nach Sparschätzung absteigend
-- "In Chat besprechen"-Button öffnet neuen Chat mit Kontext dieser Kategorie
-
----
-
-### 22.8 — Tests (`backend/tests/test_tax_interview.py`)
-
-- `test_question_routing_basics` — erste Frage ist immer Basisdaten
-- `test_conditional_question_skipped` — homeoffice_room nicht gestellt wenn homeoffice=False
-- `test_conditional_question_shown` — homeoffice_room gestellt wenn homeoffice=True
-- `test_selbststaendig_extra_questions` — Selbstständigen-Block erscheint nur bei korrektem Beschäftigungsstatus
-- `test_interview_complete_when_all_answered` — `get_next_question` gibt None zurück wenn fertig
-- `test_api_start_creates_interview` — POST /start legt Interview an
-- `test_api_answer_advances_question` — PUT /answer gibt nächste Frage zurück
-- `test_api_evaluate_returns_findings` — POST /evaluate liefert strukturierten Report (LLM gemockt)
-
----
-
-### Abhängigkeiten innerhalb der Phase
-
-```
-22.1 (Katalog) → 22.4 (Engine) → 22.5 (API)
-22.2 (DB)      → 22.4 (Engine)
-22.3 (Modelle) → 22.4 (Engine) → 22.5 (API) → 22.6 (Frontend-Client) → 22.7 (UI)
-22.5 (API)     → 22.8 (Tests)
-```
-
-22.1–22.3 können parallel entwickelt werden. 22.7 (UI) und 22.8 (Tests) können erst nach 22.5 beginnen.
+**Abhängigkeiten:** 22.1+22.2+22.3 → 22.4 → 22.5 → 22.6+22.7+22.8
 
 ---
 
